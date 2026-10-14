@@ -5,7 +5,7 @@
 🇬🇧 [Read in English](README.md)
 
 > [!NOTE]
-> **Masih dalam pengerjaan.** Ide, riset, dan mockup-nya udah beres. Sekarang lagi ngerjain versi pertama yang bisa langsung dipakai. Belum ada yang bisa di-install sekarang. Klik **Star** atau **Watch** di repo ini kalau mau ngikutin perkembangannya.
+> **Masih dalam pengerjaan.** Versi pertamanya udah jadi dan lagi dites, tapi belum online. Kamu udah bisa [jalanin di komputer sendiri](#jalanin-di-komputer-sendiri). Klik **Star** atau **Watch** di repo ini kalau mau ngikutin perkembangannya.
 
 ## Kenapa
 
@@ -50,10 +50,25 @@ Jadi app ini ngisi yang emang boleh aja: nama dari link kamu, dan perkiraan alam
 
 Fork repo ini, terus nyalain **GitHub Pages**. Kamu bakal dapet versi kamu sendiri di `https://<username-kamu>.github.io/jadi-kemana/`, tanpa perlu ngurus server. GitHub Pages gratis selama fork kamu tetap publik. Langkah lengkapnya bakal ditulis di sini begitu versi pertama keluar.
 
-## Bakal dibuat pakai
+## Jalanin di komputer sendiri
 
-- HTML, CSS, dan JavaScript murni (vanilla): tanpa framework, tanpa proses build
+Nggak ada yang perlu di-install atau di-build. Kamu cuma butuh [Node.js](https://nodejs.org/) versi 22 ke atas buat server kecil dan tesnya.
+
+```bash
+git clone https://github.com/chaechloe/jadi-kemana.git
+cd jadi-kemana
+node tools/serve.mjs
+```
+
+Terus buka http://localhost:8080. Buat jalanin tes: `node --test "tests/*.test.mjs"`.
+
+Susunan kodenya dijelasin di [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
+## Dibuat pakai
+
+- HTML, CSS, dan JavaScript murni (vanilla): tanpa framework, tanpa proses build, tanpa dependency
 - Di-hosting di GitHub Pages
+- Font disimpan sendiri di repo, jadi buka app-nya nggak perlu ngehubungin layanan font mana pun
 - [Tabler Icons](https://tabler.io/icons) (MIT)
 - [Fredoka](https://fonts.google.com/specimen/Fredoka) dan [Plus Jakarta Sans](https://fonts.google.com/specimen/Plus+Jakarta+Sans) (SIL Open Font License)
 - Saran alamat dari data [OpenStreetMap](https://www.openstreetmap.org/copyright) lewat Nominatim, © kontributor OpenStreetMap (ODbL)

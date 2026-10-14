@@ -1,0 +1,2896 @@
+/* Jadi Kemana? component styles. Tokens live in tokens.css; this is the only stylesheet views rely on.
+   House rules: an elevated element gets a shadow token and no border; anything flat inside a surface
+   gets a fill change or a hairline. Controls are pills, containers are soft cards, nested things get a
+   smaller radius. Orange text is --brand-hover, green means "send to the group". */
+
+/* ==========================================================================
+   Reset
+   ========================================================================== */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body,
+h1, h2, h3, h4,
+p, ul, ol, li, figure, blockquote, dl, dd {
+  margin: 0;
+}
+
+ul,
+ol {
+  padding: 0;
+  list-style: none;
+}
+
+img,
+picture {
+  display: block;
+  max-width: 100%;
+}
+
+button,
+input,
+select,
+textarea {
+  margin: 0;
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+a {
+  color: var(--brand-hover);
+}
+
+[hidden] {
+  display: none !important;
+}
+
+/* ==========================================================================
+   Base
+   ========================================================================== */
+
+body {
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 400;
+  overflow-wrap: break-word;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body.has-sheet {
+  overflow: hidden;
+}
+
+h1 {
+  font-family: var(--font-display);
+  font-size: 24px;
+  line-height: 28px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+h2 {
+  font-size: 18px;
+  line-height: 24px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+h3 {
+  font-size: 16px;
+  line-height: 22px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+/* Every icon from ui.icon() carries this class. */
+.icon {
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+
+/* ==========================================================================
+   Focus
+   ========================================================================== */
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* On a place colour or the brand band the ring turns white. */
+:where(.band, .cover, .ticket, .cmp-head, .peek) :focus-visible {
+  outline-color: #FFFFFF;
+}
+
+/* Headings receive focus after navigation (tabindex="-1"); they are not controls. */
+[tabindex="-1"]:focus {
+  outline: none;
+}
+
+/* ==========================================================================
+   Layout: screen, top bar, page header, sections, bottom bar
+   ========================================================================== */
+
+.screen {
+  width: 100%;
+  max-width: var(--column);
+  margin: 0 auto;
+  padding: 0 var(--gutter) calc(var(--bar-h) + var(--sp-24));
+  overflow-x: clip; /* clips the Friend card peek without creating a scroll container */
+}
+
+/* A screen without a sticky bottom bar. */
+.screen--nobar {
+  padding-bottom: calc(var(--sp-40) + env(safe-area-inset-bottom, 0px));
+}
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-8);
+  min-height: var(--topbar-h);
+  margin: 0 calc(-1 * var(--gutter));
+  padding: 0 var(--gutter);
+  background: var(--ground);
+  transition: box-shadow 0.15s ease;
+}
+
+.topbar.is-scrolled {
+  box-shadow: 0 1px 0 var(--line);
+}
+
+.topbar__start {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* A leading 44px icon button sits 8px from the edge so its glyph lines up with the gutter. */
+.topbar__start > .iconbtn:first-child {
+  margin-left: -12px;
+}
+
+.topbar__end {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-8);
+  flex: none;
+}
+
+/* Inline screen title in the bar (AddPlace: close + "Tambah tempat"). */
+.topbar__title {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-family: var(--font-ui);
+  font-size: 18px;
+  line-height: 24px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+/* Two-line heading in the bar (Friend: list name + "dari Rani · 5 tempat"). */
+.topbar__heading {
+  min-width: 0;
+}
+
+.topbar__name {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-family: var(--font-ui);
+  font-size: 16px;
+  line-height: 22px;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--ink);
+}
+
+.topbar__caption {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: var(--ink-2);
+}
+
+/* On the brand band: scrolls away with the band, white text. */
+.topbar--band {
+  position: relative;
+  background: transparent;
+  color: #FFFFFF;
+}
+
+.wordmark {
+  font-family: var(--font-display);
+  font-size: 20px;
+  line-height: 24px;
+  font-weight: 600;
+  color: var(--brand-hover);
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+.topbar--band .wordmark {
+  color: #FFFFFF;
+}
+
+.page-header {
+  padding-top: var(--sp-8);
+}
+
+.page-header__row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-8);
+}
+
+.page-header__title {
+  flex: 0 1 auto;
+  min-width: 0;
+  font-family: var(--font-display);
+  font-size: 24px;
+  line-height: 28px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+/* The trailing 36px tonal button keeps its 44px hit area without growing the row. */
+.page-header__row > .iconbtn {
+  margin: -8px 0;
+}
+
+.page-header__meta {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-8);
+  margin-top: var(--sp-4);
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 500;
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Editor title switcher: a button inside the h1 that opens "Daftar kamu". */
+.title-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-4);
+  max-width: 100%;
+  min-height: 44px;
+  margin: -8px 0;
+  border-radius: var(--r-12);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
+.title-switch__text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.section {
+  margin-top: var(--sp-24);
+}
+
+.section__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-12);
+  margin-bottom: var(--sp-12);
+}
+
+.section__title {
+  font-family: var(--font-ui);
+  font-size: 18px;
+  line-height: 24px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+.bottom-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 20;
+  width: 100%;
+  max-width: var(--column);
+  margin: 0 auto;
+  padding: var(--sp-12) var(--gutter) var(--safe-bottom);
+  background: var(--surface);
+  box-shadow: inset 0 1px 0 var(--line);
+}
+
+/* Two equal buttons side by side (Friend: "Terserah!" + "Bandingin"). */
+.bottom-bar__row {
+  display: flex;
+  gap: var(--sp-12);
+}
+
+.bottom-bar__row > * {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+/* ==========================================================================
+   Buttons
+   ========================================================================== */
+
+.btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-8);
+  height: 48px;
+  padding: 0 var(--sp-20);
+  border: 0;
+  border-radius: var(--r-pill);
+  font-family: var(--font-ui);
+  font-size: 15px;
+  line-height: 20px;
+  font-weight: 600;
+  text-align: center;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: background-color 0.15s ease, box-shadow 0.1s ease, transform 0.1s ease;
+}
+
+.btn > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.btn--primary {
+  background: var(--brand);
+  color: #FFFFFF;
+}
+
+.btn--go {
+  background: var(--go);
+  color: #FFFFFF;
+}
+
+/* Secondary sits on ground in --fill-strong and on a surface in --fill. */
+.btn--secondary {
+  background: var(--fill-strong);
+  color: var(--ink);
+}
+
+:where(.card, .placecard, .list-surface, .sheet, .bottom-bar) .btn--secondary {
+  background: var(--fill);
+}
+
+.btn--ghost {
+  height: 44px;
+  padding: 0 var(--sp-12);
+  background: transparent;
+  color: var(--brand-hover);
+}
+
+/* Confirm-dialog destructive action. */
+.btn--danger {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+/* In-form destructive action ("Hapus tempat"): a text link with a trash icon. */
+.btn--danger-link {
+  height: 44px;
+  padding: 0 var(--sp-12);
+  background: transparent;
+  color: var(--danger);
+  font-size: 14px;
+  line-height: 18px;
+}
+
+/* 56px hero CTA: Fredoka label. */
+.btn--lg {
+  height: 56px;
+  padding: 0 var(--sp-24);
+  font-family: var(--font-display);
+  font-size: 18px;
+  line-height: 24px;
+}
+
+/* 52px send button inside a card. */
+.btn--md {
+  height: 52px;
+  padding: 0 var(--sp-24);
+  font-family: var(--font-display);
+  font-size: 18px;
+  line-height: 24px;
+}
+
+/* 40px visual, 44px hit area. */
+.btn--sm {
+  height: 40px;
+  padding: 0 var(--sp-16);
+}
+
+.btn--sm::after {
+  content: '';
+  position: absolute;
+  inset: -2px 0;
+}
+
+.btn--block {
+  display: flex;
+  width: 100%;
+}
+
+/* Key edge: the only coloured shadow, only on the 56/52 primary and go buttons. */
+.btn--primary:is(.btn--lg, .btn--md) {
+  box-shadow: var(--key-brand);
+}
+
+.btn--go:is(.btn--lg, .btn--md) {
+  box-shadow: var(--key-go);
+}
+
+.btn--primary:is(.btn--lg, .btn--md):not(:disabled, [aria-disabled="true"]):active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 var(--brand-edge);
+}
+
+.btn--go:is(.btn--lg, .btn--md):not(:disabled, [aria-disabled="true"]):active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 var(--go-edge);
+}
+
+@media (hover: hover) {
+  .btn--primary:not(:disabled, [aria-disabled="true"]):hover {
+    background: var(--brand-hover);
+  }
+
+  .btn--go:not(:disabled, [aria-disabled="true"]):hover {
+    background: var(--go-hover);
+  }
+
+  .btn--secondary:not(:disabled, [aria-disabled="true"]):hover {
+    background: var(--fill-hover);
+  }
+
+  .btn--ghost:not(:disabled, [aria-disabled="true"]):hover,
+  .btn--danger-link:not(:disabled, [aria-disabled="true"]):hover {
+    background: var(--fill);
+  }
+
+  .btn--danger:not(:disabled, [aria-disabled="true"]):hover {
+    background: #F8D6D1;
+  }
+}
+
+.btn:disabled,
+.btn[aria-disabled="true"] {
+  opacity: 0.45;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+/* Icon button: 44x44 hit area, 22px ink glyph, a --fill pill on hover. */
+.iconbtn {
+  position: relative;
+  isolation: isolate;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: transparent;
+  color: var(--ink);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+/* Tonal (sheet close, rename) and glass (on covers): a 36px circle inside the 44px hit area. */
+.iconbtn--tonal::before,
+.iconbtn--glass::before {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  z-index: -1;
+  border-radius: inherit;
+  background: var(--fill-strong);
+  transition: background-color 0.15s ease;
+}
+
+:where(.card, .placecard, .list-surface, .sheet) .iconbtn--tonal::before {
+  background: var(--fill);
+}
+
+.iconbtn--glass::before {
+  background: rgba(255, 252, 246, 0.92);
+}
+
+/* White glyph on a place colour or the band. */
+.iconbtn--on-color {
+  color: #FFFFFF;
+}
+
+/* Drag handle in an editor row. */
+.iconbtn--drag {
+  color: var(--ink-3);
+  cursor: grab;
+  touch-action: none;
+}
+
+@media (hover: hover) {
+  .iconbtn:hover {
+    background: var(--fill);
+  }
+
+  .iconbtn--tonal:hover,
+  .iconbtn--glass:hover {
+    background: transparent;
+  }
+
+  .iconbtn--tonal:hover::before {
+    background: var(--fill-hover);
+  }
+
+  .iconbtn--glass:hover::before {
+    background: #FFFFFF;
+  }
+
+  .iconbtn--on-color:hover {
+    background: rgba(255, 255, 255, 0.18);
+  }
+}
+
+/* A row of equal ghost buttons divided by 1x20 hairlines ("Maps · Salin · Bagikan"). */
+.ghost-row {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+}
+
+.ghost-row__btn {
+  flex: 1 1 0;
+  min-width: 0;
+  height: auto;
+  min-height: 44px;
+  padding: var(--sp-4);
+  font-size: 14px;
+  line-height: 18px;
+  white-space: nowrap;
+}
+
+.ghost-row__divider {
+  flex: none;
+  width: 1px;
+  height: 20px;
+  background: var(--line);
+}
+
+/* Inline text link ("Buka di Maps" in helper text, "Cek jam buka di Maps"). */
+.link {
+  border-radius: 4px;
+  color: var(--brand-hover);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* Extends an inline link to a 44px tall hit area without moving the text. */
+.link--hit {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-4);
+  min-height: 44px;
+  margin: -13px 0;
+}
+
+.link--plain {
+  text-decoration: none;
+}
+
+.link--on-color {
+  color: #FFFFFF;
+}
+
+@media (hover: hover) {
+  .link:not(.link--on-color):hover {
+    color: var(--brand-edge);
+  }
+}
+
+/* ==========================================================================
+   Language toggle (segmented ID / EN)
+   ========================================================================== */
+
+.seg {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  height: 32px;
+  padding: 3px;
+  border-radius: var(--r-pill);
+  background: var(--fill-strong);
+}
+
+/* 44px tall hit area; the negative margin keeps the 32px track. */
+.seg__btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 44px;
+  margin: -9px 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: transparent;
+  cursor: pointer;
+}
+
+.seg__pill {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: var(--r-pill);
+  color: var(--ink-2);
+  font-size: 12px;
+  line-height: 1;
+  font-weight: 600;
+  text-transform: uppercase;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.seg__btn[aria-pressed="true"] .seg__pill {
+  background: var(--surface);
+  box-shadow: 0 1px 2px rgba(62, 44, 32, 0.14);
+  color: var(--ink);
+}
+
+/* Dark track on the band: white text on it is ~6.6:1 (a white tint gave only 3.38:1 on #C0530B). */
+.seg--band {
+  background: rgba(0, 0, 0, 0.20);
+}
+
+.seg--band .seg__pill {
+  color: #FFFFFF;
+}
+
+.seg--band .seg__btn[aria-pressed="true"] .seg__pill {
+  background: #FFFFFF;
+  box-shadow: none;
+  color: var(--brand-hover);
+}
+
+/* ==========================================================================
+   Surfaces and lists
+   ========================================================================== */
+
+.card {
+  padding: var(--sp-20);
+  border-radius: var(--r-24);
+  background: var(--surface);
+  box-shadow: var(--e1);
+}
+
+/* A card whose sections bring their own padding (AddPlace form). */
+.card--flush {
+  padding: 0;
+  overflow: hidden;
+}
+
+.card__section {
+  padding: var(--sp-20);
+}
+
+/* Sections inside a card are split by full-bleed hairlines. */
+.card__section + .card__section {
+  box-shadow: inset 0 1px 0 var(--line);
+}
+
+.card__title {
+  font-family: var(--font-ui);
+  font-size: 16px;
+  line-height: 22px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+/* One surface card holding rows separated by hairlines inset 72px. */
+.list-surface {
+  border-radius: var(--r-24);
+  background: var(--surface);
+  box-shadow: var(--e1);
+  overflow: hidden;
+}
+
+.list-surface > * {
+  position: relative;
+}
+
+.list-surface > * + *::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: var(--row-inset, 72px);
+  right: 0;
+  height: 1px;
+  background: var(--line);
+  pointer-events: none;
+}
+
+.list-surface > .divider::before,
+.list-surface > .divider + *::before {
+  display: none;
+}
+
+/* Rows straight on a sheet: no card, full-bleed rows, hairlines inset 76px. */
+.list-surface--flat {
+  --row-inset: 76px;
+  margin: 0 calc(-1 * var(--gutter));
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  overflow: visible;
+}
+
+.list-surface--flat .row {
+  padding: 0 var(--gutter);
+}
+
+/* A row: 40px tile, title + meta, optional trailing control. Use it on <a>, <button> or <li>. */
+.row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-16);
+  width: 100%;
+  min-height: 64px;
+  padding: 0 var(--sp-16);
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--font-ui);
+  text-align: left;
+  text-decoration: none;
+}
+
+a.row:focus-visible,
+button.row:focus-visible {
+  outline-offset: -2px;
+}
+
+/* "Tambah tempat" / "Daftar baru": 56px tall, orange label. */
+.row--add {
+  min-height: 56px;
+  color: var(--brand-hover);
+  font-size: 14px;
+  line-height: 18px;
+  font-weight: 600;
+}
+
+.row__main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1 1 auto;
+  min-width: 0;
+  color: inherit;
+  text-align: left;
+  text-decoration: none;
+}
+
+/* Stretched link: the whole row is clickable while a trailing button stays separate. */
+.row__link::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
+.row__link:focus-visible {
+  outline: none;
+}
+
+.row__link:focus-visible::after {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
+}
+
+.row__title {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-family: var(--font-ui);
+  font-size: 16px;
+  line-height: 22px;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--ink);
+}
+
+.row__meta {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 500;
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.row__meta .icon {
+  display: inline-block;
+  margin: -2px 2px 0;
+}
+
+.row__trail {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  flex: none;
+  color: var(--ink-3);
+}
+
+.row__trail--check {
+  color: var(--brand-hover);
+}
+
+/* A trailing icon button keeps its 44px hit area flush with the row padding. */
+.row > .iconbtn:last-child {
+  z-index: 1;
+  margin-right: -12px;
+}
+
+@media (hover: hover) {
+  a.row:hover,
+  button.row:hover,
+  .row:has(.row__link:hover) {
+    background: var(--fill);
+  }
+}
+
+/* Rounded-square place tile: the place colour with an emoji, never a circle. */
+.tile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--r-12);
+  background: var(--place, var(--fill-strong));
+  color: #FFFFFF;
+  font-size: 22px;
+  line-height: 1;
+}
+
+.tile--32 {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--r-8);
+  font-size: 18px;
+}
+
+.tile--48 {
+  width: 48px;
+  height: 48px;
+  font-size: 28px;
+}
+
+.tile--56 {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--r-16);
+  font-size: 32px;
+}
+
+/* Translucent tile on a place colour (covers, tickets, compare headers). */
+.tile--glass {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+/* Neutral tile holding an ink-2 icon. */
+.tile--fill {
+  background: var(--fill);
+  color: var(--ink-2);
+}
+
+/* Dashed "add" tile with an orange plus. */
+.tile--dashed {
+  border: 1.5px dashed var(--line-dash);
+  background: transparent;
+  color: var(--brand-hover);
+}
+
+/* Empty-list placeholder row (Editor with no places). */
+.placeholder-row {
+  display: flex;
+  align-items: center;
+  height: 64px;
+  padding: 0 var(--sp-16);
+  border: 1.5px dashed var(--line-dash);
+  border-radius: var(--r-16);
+}
+
+.placeholder-row::before {
+  content: '';
+  width: 40px;
+  height: 40px;
+  border-radius: var(--r-12);
+  background: var(--fill-strong);
+}
+
+/* Brand-soft note: "changed since shared", the link-too-long warning, the backup reminder. */
+.note {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-8);
+  padding: var(--sp-12) var(--sp-16);
+  border-radius: var(--r-12);
+  background: var(--brand-soft);
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 500;
+}
+
+.note > .icon {
+  margin-top: 1px;
+  color: var(--brand-edge);
+}
+
+.note--danger {
+  background: var(--danger-soft);
+}
+
+.note--danger > .icon {
+  color: var(--danger);
+}
+
+.note__body {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* Ghost buttons under a note's text ("Tempel teks share-nya · Isi manual aja"). */
+.note__actions {
+  display: flex;
+  flex-wrap: wrap;
+  margin: var(--sp-4) calc(-1 * var(--sp-12)) calc(-1 * var(--sp-12));
+}
+
+.note__actions .btn--ghost {
+  font-size: 14px;
+}
+
+.divider {
+  height: 1px;
+  margin: var(--sp-16) 0;
+  border: 0;
+  background: var(--line);
+}
+
+.divider--flush {
+  margin: 0;
+}
+
+.divider--8 {
+  margin: var(--sp-8) 0;
+}
+
+/* Small ink-2 line with a leading 14px icon ("Tersimpan di HP ini…", compat line, CTA helper). */
+.hint {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-8);
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 500;
+  color: var(--ink-2);
+}
+
+.hint > .icon {
+  margin-top: 2px;
+}
+
+.hint--center {
+  justify-content: center;
+  text-align: center;
+}
+
+/* Empty state: 32px icon, one line, an optional ghost button. No title, no illustration. */
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-12);
+  padding: var(--sp-32) 0;
+  text-align: center;
+}
+
+.empty > .icon {
+  color: var(--ink-3);
+}
+
+.empty__text {
+  max-width: 300px;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  color: var(--ink-2);
+}
+
+/* ==========================================================================
+   Forms
+   ========================================================================== */
+
+.field + .field {
+  margin-top: var(--sp-20);
+}
+
+/* Two fields side by side (rating + hours). */
+.field-pair {
+  display: grid;
+  grid-template-columns: 128px minmax(0, 1fr);
+  gap: var(--sp-8);
+}
+
+.label {
+  display: block;
+  margin-bottom: var(--sp-8);
+  font-size: 14px;
+  line-height: 18px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+/* Label plus a trailing tag or inline helper ("dari Maps", "Pilih yang ada"). */
+.label-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--sp-4) var(--sp-8);
+  min-height: 20px;
+  margin-bottom: var(--sp-8);
+}
+
+.label-row > .label {
+  margin-bottom: 0;
+}
+
+.label-row__hint {
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 500;
+  color: var(--ink-2);
+}
+
+/* "dari Maps" tag right of a field label; removed once the field is edited. */
+.tag-maps {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-4);
+  height: 20px;
+  padding: 0 6px;
+  border-radius: var(--r-6);
+  background: var(--fill);
+  color: var(--ink-2);
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+.input-wrap {
+  position: relative;
+}
+
+/* Leading 18px icon, 16 from the left (link, star). */
+.input-wrap > .icon {
+  position: absolute;
+  top: 15px;
+  left: 16px;
+  color: var(--ink-3);
+  pointer-events: none;
+}
+
+.input-wrap--icon .input {
+  padding-left: 44px;
+}
+
+/* Select chevron, 16 from the right. */
+.input-wrap--select > .icon {
+  left: auto;
+  right: 16px;
+  color: var(--ink-2);
+}
+
+/* Inputs are filled pills: --surface on the ground, --fill on a surface. */
+.input,
+.select,
+.textarea {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  height: 48px;
+  padding: 0 var(--sp-16);
+  border: 0;
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line-dash);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 400;
+  text-overflow: ellipsis;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  transition: box-shadow 0.15s ease;
+}
+
+:where(.card, .placecard, .list-surface, .sheet) :is(.input, .select, .textarea) {
+  background: var(--fill);
+}
+
+.input::placeholder,
+.textarea::placeholder {
+  color: var(--ink-3);
+  opacity: 1;
+}
+
+.input:focus,
+.select:focus,
+.textarea:focus {
+  box-shadow: var(--ring-focus);
+}
+
+.input:focus-visible,
+.select:focus-visible,
+.textarea:focus-visible {
+  outline: none;
+}
+
+.input[aria-invalid="true"],
+.select[aria-invalid="true"],
+.textarea[aria-invalid="true"] {
+  box-shadow: var(--ring-error);
+}
+
+/* An invalid field keeps a visible focus indicator: the danger inset plus a stronger outer focus ring
+   (the outline is off above, and the error ring alone would look the same focused or not). */
+.input[aria-invalid="true"]:focus,
+.select[aria-invalid="true"]:focus,
+.textarea[aria-invalid="true"]:focus {
+  box-shadow: inset 0 0 0 1.5px var(--danger), 0 0 0 3px rgba(168, 74, 10, 0.35);
+}
+
+.input--num {
+  font-variant-numeric: tabular-nums;
+}
+
+.select {
+  padding-right: 44px;
+  overflow: hidden;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.textarea {
+  height: auto;
+  min-height: 96px;
+  padding: var(--sp-12) var(--sp-16);
+  border-radius: var(--r-18);
+  text-overflow: clip;
+  resize: vertical;
+}
+
+.helper {
+  margin-top: 6px;
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 500;
+  color: var(--ink-2);
+}
+
+.helper--error {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-4);
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: 0.01em;
+  color: var(--danger);
+}
+
+.helper--error > .icon {
+  margin-top: 1px;
+}
+
+/* Helper text with a character counter on the right. */
+.helper-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-12);
+  margin-top: 6px;
+}
+
+.helper-row > .helper {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin-top: 0;
+}
+
+.counter {
+  flex: none;
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 500;
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.counter--over {
+  color: var(--danger);
+}
+
+/* Toggle chips: 40px pills, 44px hit area, wrap with an 8px gap. */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-8);
+}
+
+.chip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-8);
+  height: 40px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: var(--fill);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.chip::after {
+  content: '';
+  position: absolute;
+  inset: -2px 0;
+}
+
+.chip > .icon {
+  color: var(--ink-2);
+}
+
+/* Render both icons; aria-pressed decides which one shows, so toggling needs no re-render. */
+.chip > .chip__check {
+  display: none;
+}
+
+.chip[aria-pressed="true"] {
+  background: var(--brand-soft);
+  box-shadow: var(--ring-selected);
+  color: var(--brand-edge);
+}
+
+.chip[aria-pressed="true"] > .icon {
+  color: var(--brand-edge);
+}
+
+.chip[aria-pressed="true"] > .chip__check {
+  display: block;
+}
+
+.chip[aria-pressed="true"] > .chip__icon {
+  display: none;
+}
+
+@media (hover: hover) {
+  button.chip:not([aria-pressed="true"]):hover {
+    background: var(--fill-hover);
+  }
+}
+
+/* "+ Lainnya": dashed, transparent. */
+.chip--dashed {
+  border: 1.5px dashed var(--line-dash);
+  background: transparent;
+  color: var(--ink-2);
+}
+
+@media (hover: hover) {
+  button.chip--dashed:hover {
+    background: var(--fill);
+  }
+}
+
+/* Hours presets: 36px visual, 44px hit area. */
+.chip--sm {
+  height: 36px;
+  padding: 0 var(--sp-12);
+  font-size: 13px;
+  line-height: 18px;
+  font-variant-numeric: tabular-nums;
+}
+
+.chip--sm::after {
+  inset: -4px 0;
+}
+
+/* A custom perk: shown selected, with its own remove button. */
+.chip--custom {
+  padding-right: 0;
+  background: var(--brand-soft);
+  box-shadow: var(--ring-selected);
+  color: var(--brand-edge);
+  cursor: default;
+}
+
+.chip--custom::after {
+  display: none;
+}
+
+.chip--custom > .icon {
+  color: var(--brand-edge);
+}
+
+.chip__remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin: -2px -2px -2px calc(-1 * var(--sp-8));
+  border-radius: var(--r-pill);
+  color: var(--brand-edge);
+}
+
+/* Inline input that replaces "+ Lainnya" while typing a custom perk. */
+.chip-input {
+  flex: 1 1 160px;
+  height: 44px; /* minimum touch target */
+}
+
+.emoji-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--sp-8);
+}
+
+.emoji-opt {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 44px;
+  border-radius: var(--r-12);
+  background: var(--fill);
+  font-size: 22px;
+  line-height: 1;
+  transition: background-color 0.15s ease;
+}
+
+.emoji-opt[aria-pressed="true"] {
+  background: var(--brand-soft);
+  box-shadow: inset 0 0 0 2px var(--brand);
+}
+
+@media (hover: hover) {
+  .emoji-opt:not([aria-pressed="true"]):hover {
+    background: var(--fill-hover);
+  }
+}
+
+.swatch-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  justify-items: center;
+  gap: var(--sp-4) var(--sp-8);
+}
+
+/* 36px colour circle (from --place) inside a 44px button; selected gets an ink ring and a check. */
+.swatch {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--r-pill);
+  color: #FFFFFF;
+}
+
+.swatch::before {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  border-radius: inherit;
+  background: var(--place, var(--brand));
+}
+
+.swatch > .icon {
+  position: relative;
+  display: none;
+}
+
+.swatch[aria-pressed="true"]::before {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.swatch[aria-pressed="true"] > .icon {
+  display: block;
+}
+
+/* ==========================================================================
+   Place components: cover, place card, meta lines, facilities, rating, tags, tickets
+   ========================================================================== */
+
+/* Friend card cover band: place colour + dots, emoji tile, rating chip, overline + name. */
+.cover {
+  position: relative;
+  height: 176px;
+  background-color: var(--place, var(--brand));
+  background-image: var(--dots);
+  background-size: var(--dots-size);
+  color: #FFFFFF;
+}
+
+.cover__emoji {
+  position: absolute;
+  top: var(--sp-16);
+  left: var(--sp-16);
+}
+
+.cover > .rating-chip {
+  position: absolute;
+  top: var(--sp-16);
+  right: var(--sp-16);
+}
+
+.cover__text {
+  position: absolute;
+  left: var(--sp-16);
+  right: var(--sp-16);
+  bottom: var(--sp-16);
+  display: flex;
+  flex-direction: column;
+}
+
+.cover__overline {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 600;
+}
+
+.cover__name {
+  display: -webkit-box;
+  margin-top: var(--sp-4);
+  overflow: hidden;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  font-family: var(--font-display);
+  font-size: 24px;
+  line-height: 28px;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: #FFFFFF;
+}
+
+.placecard {
+  border-radius: var(--r-24);
+  background: var(--surface);
+  box-shadow: var(--e1);
+  overflow: hidden;
+}
+
+.placecard__body {
+  padding: var(--sp-20);
+}
+
+.placecard__heading {
+  margin-bottom: var(--sp-12);
+  font-family: var(--font-ui);
+  font-size: 16px;
+  line-height: 22px;
+  font-weight: 600;
+}
+
+.placecard__body > .note-block {
+  margin-top: var(--sp-16);
+}
+
+.placecard__body > .btn--go {
+  margin-top: var(--sp-20);
+}
+
+.placecard__body > .ghost-row {
+  margin-top: var(--sp-8);
+}
+
+/* Friend view: the current card plus a 12px peek of the next card's cover. */
+.carousel {
+  display: flex;
+  align-items: stretch;
+  margin-right: calc(-1 * var(--gutter));
+  padding-top: var(--sp-8);
+}
+
+.carousel > .placecard {
+  flex: 0 0 calc(100% - var(--gutter));
+  min-width: 0;
+}
+
+.peek {
+  position: relative;
+  display: flex;
+  flex: 0 0 var(--gutter);
+  padding: 0 0 0 var(--sp-8);
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+/* The peek is only ~20px wide visually; this invisible layer reaches 16px back over the current
+   card's edge (inside its 20px padding, so no card control is covered), giving a 36px hit area.
+   The 44px dots below are the full-size alternative. */
+.peek::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 0 -16px;
+}
+
+.peek__card {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  border-radius: var(--r-24) 0 0 var(--r-24);
+  background: var(--surface);
+  box-shadow: var(--e1);
+  overflow: hidden;
+}
+
+.peek__card::before {
+  content: '';
+  flex: none;
+  height: 176px;
+  background-color: var(--place, var(--brand));
+  background-image: var(--dots);
+  background-size: var(--dots-size);
+}
+
+/* Address and hours lines: small ink text, 14px ink-3 icons, 8 between lines. */
+.meta-lines {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-8);
+}
+
+.meta-line {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-8);
+  min-height: 18px;
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 500;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.meta-line > .icon {
+  margin-top: 2px;
+  color: var(--ink-3);
+}
+
+/* On the ground the meta icon is ink-2. */
+.meta-line--ground > .icon {
+  color: var(--ink-2);
+}
+
+.meta-line__text {
+  min-width: 0;
+}
+
+.meta-line__text--clamp {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+/* A 24px tag inside an 18px line. */
+.meta-line > .tag {
+  margin: -3px 0;
+}
+
+/* Read-only facilities: a 2-column icon + label list, no chips. */
+.facilities {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px var(--sp-12);
+}
+
+.facilities__item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-8);
+  min-width: 0;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 400;
+  color: var(--ink);
+}
+
+.facilities__item > .icon {
+  margin-top: 1px;
+  color: var(--ink-2);
+}
+
+.facilities__item > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* Rating chip on a cover: filled star, value, optional count. */
+.rating-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-4);
+  height: 28px;
+  padding: 0 var(--sp-12) 0 var(--sp-8);
+  border-radius: var(--r-pill);
+  background: rgba(255, 252, 246, 0.94);
+  font-variant-numeric: tabular-nums;
+}
+
+.rating-chip > .icon {
+  color: var(--star);
+}
+
+.rating-chip__value {
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.rating-chip__count {
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  color: var(--ink-2);
+}
+
+/* Static tag, e.g. "Buka 24 jam". */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-4);
+  height: 24px;
+  padding: 0 var(--sp-8);
+  border-radius: var(--r-8);
+  background: var(--fill);
+  color: var(--ink-2);
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+/* A dark tint (not a white one) keeps white text at 4.5:1+ on every place colour, orange and teal included. */
+.tag--on-color {
+  background: rgba(0, 0, 0, 0.18);
+  color: #FFFFFF;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 var(--sp-8);
+  border-radius: var(--r-pill);
+  background: var(--fill);
+  color: var(--ink-2);
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+.badge--brand {
+  background: var(--brand-soft);
+  color: var(--brand-edge);
+}
+
+.badge--danger {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+/* Place ticket: place colour + dots, two notches at 65% height, a perforation across.
+   --notch is the parent background (defaults to the ground). */
+.ticket {
+  --notch: var(--ground);
+  position: relative;
+  overflow: hidden;
+  background-color: var(--place, var(--brand));
+  background-image: var(--dots);
+  background-size: var(--dots-size);
+  color: #FFFFFF;
+}
+
+.ticket::before,
+.ticket::after {
+  content: '';
+  position: absolute;
+  top: calc(65% - 8px);
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--notch);
+}
+
+.ticket::before {
+  left: -8px;
+}
+
+.ticket::after {
+  right: -8px;
+}
+
+.ticket__top {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-12);
+}
+
+.ticket__text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.ticket__overline {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 600; /* full white: 85% opacity fell to 3.82:1 on orange; size/weight carry the hierarchy */
+}
+
+.ticket__name {
+  margin-top: var(--sp-4);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-family: var(--font-display);
+  font-size: 20px;
+  line-height: 24px;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: #FFFFFF;
+}
+
+/* Below the perforation: rating and hours in white small 600. */
+.ticket__bottom {
+  position: absolute;
+  top: 65%;
+  bottom: 0;
+  left: var(--sp-16);
+  right: var(--sp-16);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-12);
+  border-top: 1.5px dashed rgba(255, 255, 255, 0.35);
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.ticket__facts {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-12);
+  min-width: 0;
+}
+
+.ticket__fact {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-4);
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.ticket__fact > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ticket__value {
+  font-weight: 700;
+}
+
+.ticket__count {
+  font-weight: 500; /* lighter than .ticket__value; no opacity, so white stays 4.68:1 on orange */
+}
+
+/* S: 72 tall live preview, no perforation, flat. */
+.ticket--s {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-12);
+  height: 72px;
+  padding: 0 var(--sp-16) 0 var(--sp-12);
+  border-radius: var(--r-12);
+}
+
+.ticket--s .tile {
+  border-radius: var(--r-8);
+  font-size: 26px;
+}
+
+.ticket--s .ticket__name {
+  margin-top: 0;
+  font-size: 18px;
+  line-height: 22px;
+}
+
+/* M: 300x112 (Main stack). */
+.ticket--m {
+  width: min(300px, 100%);
+  height: 112px;
+  border-radius: var(--r-16);
+  box-shadow: var(--e2);
+}
+
+.ticket--m .ticket__top {
+  padding: var(--sp-16) var(--sp-16) 0;
+}
+
+/* L: 350x320 (Random). Emoji top-left, name at the foot of the upper part. */
+.ticket--l {
+  width: 100%;
+  max-width: 350px;
+  height: 320px;
+  border-radius: var(--r-24);
+  box-shadow: var(--e2);
+}
+
+.ticket--l .ticket__top {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 35%;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: var(--sp-20);
+}
+
+.ticket--l .ticket__text {
+  flex: none;
+  width: 100%;
+}
+
+.ticket--l .ticket__name {
+  display: -webkit-box;
+  white-space: normal;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  font-size: 30px;
+  line-height: 34px;
+  letter-spacing: -0.01em;
+}
+
+.ticket--l .ticket__bottom {
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: var(--sp-8);
+  padding: 0 var(--sp-4);
+}
+
+.ticket--l .ticket__facts {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--sp-8);
+}
+
+.ticket--l .ticket__fact {
+  gap: var(--sp-8);
+}
+
+.ticket--tilt {
+  transform: rotate(-2deg);
+}
+
+/* Random: the ticket is dealt in from below. */
+.ticket--deal {
+  animation: ticket-deal 280ms ease-out both;
+}
+
+@keyframes ticket-deal {
+  from {
+    transform: translateY(24px) rotate(-6deg);
+  }
+  to {
+    transform: translateY(0) rotate(-2deg);
+  }
+}
+
+/* Main: three M tickets fanned over the band's lower edge, back to front. */
+.ticket-stack {
+  position: relative;
+  width: min(300px, 100%);
+  height: 112px;
+  margin: -60px auto 0;
+}
+
+.ticket-stack > .ticket {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.ticket-stack > :nth-child(1) {
+  transform: translateY(-18px) rotate(-4deg);
+}
+
+.ticket-stack > :nth-child(2) {
+  transform: translateY(-8px) rotate(2deg);
+}
+
+.ticket-stack > :nth-child(3) {
+  transform: rotate(-1deg);
+}
+
+/* Mini green "Bahas tempat ini!" pill on the front ticket. */
+.go-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-4);
+  flex: none;
+  height: 28px;
+  padding: 0 var(--sp-12);
+  border-radius: var(--r-pill);
+  background: var(--go);
+  color: #FFFFFF;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+/* Pager dots: 8px, the current one 20x8 in brand, 44px hit areas. */
+.dots {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.dot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--r-pill);
+}
+
+.dot::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: var(--r-pill);
+  background: var(--line-strong);
+  transition: width 0.2s ease, background-color 0.2s ease;
+}
+
+.dot[aria-current="true"]::before {
+  width: 20px;
+  background: var(--brand);
+}
+
+/* Coordinator's note on a place card. */
+.note-block {
+  padding: var(--sp-12) 14px;
+  border-radius: var(--r-12);
+  background: var(--brand-soft);
+}
+
+.note-block__head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-8);
+}
+
+.note-block__from {
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--ink-2);
+}
+
+.note-block__text {
+  margin-top: var(--sp-8);
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--ink);
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+/* 24px initial avatar. */
+.avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--r-pill);
+  background: var(--brand);
+  color: #FFFFFF;
+  font-size: 12px;
+  line-height: 1;
+  font-weight: 600;
+}
+
+/* ==========================================================================
+   Compare
+   ========================================================================== */
+
+.cmp-pickers {
+  display: flex;
+  gap: var(--sp-12);
+}
+
+.cmp-pickers > * {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.cmp-heads {
+  display: flex;
+  gap: var(--sp-12);
+}
+
+.cmp-head {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-12);
+  flex: 1 1 0;
+  min-width: 0;
+  height: 72px;
+  padding: 0 var(--sp-12);
+  border-radius: var(--r-16);
+  background: var(--place, var(--brand));
+  color: #FFFFFF;
+}
+
+.cmp-head .tile {
+  border-radius: var(--r-8);
+}
+
+/* "A" / "B" badge on the tile's top-left corner. */
+.cmp-head__badge {
+  position: absolute;
+  top: 10px;
+  left: 6px;
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.cmp-head__name {
+  display: -webkit-box;
+  min-width: 0;
+  overflow: hidden;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  font-family: var(--font-ui);
+  font-size: 16px;
+  line-height: 22px;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: #FFFFFF;
+  overflow-wrap: anywhere;
+}
+
+.cmp-table {
+  padding: 0 var(--sp-12);
+  border-radius: var(--r-24);
+  background: var(--surface);
+  box-shadow: var(--e1);
+}
+
+.cmp-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-8);
+  min-height: 52px;
+  padding: var(--sp-12) 0;
+}
+
+.cmp-row + .cmp-row {
+  box-shadow: inset 0 1px 0 var(--line);
+}
+
+.cmp-row--top {
+  align-items: flex-start;
+}
+
+/* Facility rows: 44 tall. */
+.cmp-row--compact {
+  min-height: 44px;
+  padding: var(--sp-4) 0;
+}
+
+.cmp-row__label {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-4);
+  flex: none;
+  width: 88px;
+  font-size: 14px;
+  line-height: 18px;
+  font-weight: 600;
+  color: var(--ink-2);
+  overflow-wrap: anywhere;
+}
+
+.cmp-row__cell {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  flex: 1 1 0;
+  min-width: 0;
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 400;
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+/* The better value: ink 600 with an arrow-up. */
+.cmp-row__cell--better {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+/* Neutral content (address, note, a facility check). */
+.cmp-row__cell--plain {
+  color: var(--ink);
+}
+
+.cmp-dash {
+  color: var(--ink-3);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* ==========================================================================
+   Overlays: scrim, bottom sheet, toast
+   ========================================================================== */
+
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: var(--scrim);
+  animation: fade-in 0.2s ease-out both;
+}
+
+.sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 50;
+  width: 100%;
+  max-width: var(--column);
+  max-height: calc(100dvh - var(--sp-40));
+  margin: 0 auto;
+  padding: var(--sp-16) var(--gutter) calc(var(--sp-24) + env(safe-area-inset-bottom, 0px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-radius: var(--r-24) var(--r-24) 0 0;
+  background: var(--raised);
+  box-shadow: var(--e3);
+  animation: sheet-up 0.24s ease-out both;
+}
+
+.sheet__grabber {
+  position: absolute;
+  top: var(--sp-8);
+  left: 50%;
+  width: 36px;
+  height: 4px;
+  margin-left: -18px;
+  border-radius: 2px;
+  background: var(--line-dash);
+}
+
+.sheet__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-12);
+  min-height: 44px;
+}
+
+.sheet__title {
+  min-width: 0;
+  font-family: var(--font-ui);
+  font-size: 18px;
+  line-height: 24px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.sheet__head > .iconbtn {
+  margin-right: -4px;
+}
+
+.sheet__body {
+  margin-top: var(--sp-8);
+}
+
+/* Stacked full-width actions: primary first, then ghost. */
+.sheet__actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-8);
+  margin-top: var(--sp-24);
+}
+
+/* The live region stays put; ui.toast() sets --toast-offset to the bottom bar's height. */
+.toast-region {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(var(--toast-offset, env(safe-area-inset-bottom, 0px)) + var(--sp-24));
+  z-index: 60;
+  display: flex;
+  justify-content: center;
+  padding: 0 var(--gutter);
+  pointer-events: none;
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-8);
+  min-height: 48px;
+  max-width: 350px;
+  padding: 15px var(--sp-20);
+  border-radius: var(--r-24);
+  background: var(--night);
+  box-shadow: var(--e2);
+  color: var(--ink-inverse);
+  font-size: 14px;
+  line-height: 18px;
+  font-weight: 500;
+  animation: toast-in 0.2s ease-out both;
+}
+
+.toast > .icon {
+  color: #FFFFFF;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes sheet-up {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ==========================================================================
+   Chat preview (Share)
+   ========================================================================== */
+
+.chat-wall {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-8);
+  padding: var(--sp-16);
+  border-radius: var(--r-24);
+  background: var(--chat-wall);
+}
+
+/* Incoming bubble by default; --out is the coordinator's own message. */
+.bubble {
+  position: relative;
+  align-self: flex-start;
+  max-width: 78%;
+  padding: var(--sp-8) var(--sp-12);
+  border-radius: 18px 18px 18px 6px;
+  background: #FFFFFF;
+  box-shadow: 0 1px 1px rgba(62, 44, 32, 0.08);
+  color: var(--ink);
+  font-family: var(--font-chat);
+  font-size: 15px;
+  line-height: 20px;
+  overflow-wrap: anywhere;
+}
+
+.bubble--out {
+  align-self: flex-end;
+  border-radius: 18px 18px 6px 18px;
+  background: var(--go-soft);
+}
+
+/* Sender name in that person's place colour. */
+.bubble__name {
+  margin-bottom: 2px;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--place, var(--brand-hover));
+}
+
+.bubble__text {
+  white-space: pre-line;
+}
+
+.bubble__text strong {
+  font-weight: 600;
+}
+
+.bubble__link {
+  color: var(--brand-hover);
+  text-decoration: underline;
+  word-break: break-all;
+}
+
+.bubble__time {
+  margin-top: var(--sp-4);
+  text-align: right;
+  font-size: 11px;
+  line-height: 14px;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.bubble > .preview-card {
+  margin: 0 calc(-1 * var(--sp-4)) var(--sp-8);
+}
+
+/* Link preview inside a bubble: brand thumbnail with a map pin and two tiny tickets. */
+.preview-card {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-12);
+  padding: var(--sp-8);
+  border-radius: var(--r-16);
+  background: rgba(62, 44, 32, 0.05);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  text-decoration: none;
+}
+
+.preview-card__thumb {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 64px;
+  height: 64px;
+  border-radius: var(--r-8);
+  background: var(--brand);
+  color: #FFFFFF;
+  overflow: hidden;
+}
+
+.preview-card__thumb > .icon {
+  position: relative;
+}
+
+.preview-card__mini {
+  position: absolute;
+  width: 28px;
+  height: 18px;
+  border-radius: var(--r-6);
+  background: rgba(255, 255, 255, 0.28);
+}
+
+.preview-card__mini::before,
+.preview-card__mini::after {
+  content: '';
+  position: absolute;
+  top: 5px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--brand);
+}
+
+.preview-card__mini::before {
+  left: -4px;
+}
+
+.preview-card__mini::after {
+  right: -4px;
+}
+
+.preview-card__mini--a {
+  top: 8px;
+  left: 4px;
+  transform: rotate(-12deg);
+}
+
+.preview-card__mini--b {
+  right: 4px;
+  bottom: 8px;
+  transform: rotate(10deg);
+}
+
+.preview-card__text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.preview-card__title {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  font-size: 14px;
+  line-height: 18px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.preview-card__desc {
+  display: -webkit-box;
+  margin-top: 2px;
+  overflow: hidden;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--ink-2);
+}
+
+.preview-card__domain {
+  margin-top: 2px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: var(--ink-2);
+}
+
+/* ==========================================================================
+   Welcome: brand band with the hand-drawn squiggle
+   ========================================================================== */
+
+/* Full-bleed within the column; its bottom padding leaves room for the ticket stack to overlap. */
+.band {
+  margin: 0 calc(-1 * var(--gutter));
+  padding: 0 var(--gutter) 88px;
+  background-color: var(--brand);
+  background-image: var(--dots);
+  background-size: var(--dots-size);
+  color: #FFFFFF;
+}
+
+.band__title {
+  margin-top: var(--sp-24);
+  font-family: var(--font-display);
+  font-size: 34px;
+  line-height: 38px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: #FFFFFF;
+}
+
+.band__lead {
+  margin-top: var(--sp-12);
+  font-size: 15px;
+  line-height: 22px;
+  color: #FFFFFF;
+}
+
+/* The last word of the headline, underlined by a 3px brand-soft squiggle. */
+.squiggle {
+  position: relative;
+  display: inline-block;
+  white-space: nowrap;
+}
+
+.squiggle__line {
+  position: absolute;
+  left: 0;
+  bottom: -6px;
+  width: 100%;
+  height: 12px;
+  overflow: visible;
+  color: var(--brand-soft);
+  pointer-events: none;
+}
+
+/* ==========================================================================
+   Utilities
+   ========================================================================== */
+
+.visually-hidden {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Vertical stack; the gap defaults to 12. */
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-12);
+}
+
+.stack--4 { gap: var(--sp-4); }
+.stack--8 { gap: var(--sp-8); }
+.stack--16 { gap: var(--sp-16); }
+.stack--20 { gap: var(--sp-20); }
+.stack--24 { gap: var(--sp-24); }
+
+/* Horizontal, wrapping group with an 8 gap. */
+.cluster {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-8);
+}
+
+/* Two ends of one line. */
+.split {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-12);
+}
+
+.grow {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.center {
+  text-align: center;
+}
+
+.center-row {
+  display: flex;
+  justify-content: center;
+}
+
+.truncate {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.clamp-2,
+.clamp-3 {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+}
+
+.clamp-2 { -webkit-line-clamp: 2; }
+.clamp-3 { -webkit-line-clamp: 3; }
+
+.mt-0 { margin-top: 0; }
+.mt-4 { margin-top: var(--sp-4); }
+.mt-8 { margin-top: var(--sp-8); }
+.mt-12 { margin-top: var(--sp-12); }
+.mt-16 { margin-top: var(--sp-16); }
+.mt-20 { margin-top: var(--sp-20); }
+.mt-24 { margin-top: var(--sp-24); }
+.mt-32 { margin-top: var(--sp-32); }
+
+/* Type helpers for one-off text. */
+.text-display {
+  font-family: var(--font-display);
+  font-size: 34px;
+  line-height: 38px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.text-h1 {
+  font-family: var(--font-display);
+  font-size: 24px;
+  line-height: 28px;
+  font-weight: 600;
+}
+
+.text-h2 {
+  font-size: 18px;
+  line-height: 24px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.text-h3 {
+  font-size: 16px;
+  line-height: 22px;
+  font-weight: 600;
+}
+
+.text-body {
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 400;
+}
+
+.text-small {
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 500;
+}
+
+.text-caption {
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+
+/* Secondary text colour (safe on the ground). */
+.muted {
+  color: var(--ink-2);
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+/* The rating star glyph. */
+.star {
+  color: var(--star);
+}
+
+.spin {
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Off-screen textarea used by ui.copyText()'s fallback. */
+.clipboard-proxy {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  font-size: 16px;
+  pointer-events: none;
+}
+
+.noscript {
+  max-width: var(--column);
+  margin: 0 auto;
+  padding: var(--sp-40) var(--gutter);
+}
+
+.noscript p + p {
+  margin-top: var(--sp-12);
+}
+
+/* ==========================================================================
+   Reduced motion
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* Random keeps its resting tilt but skips the deal-in. */
+  .ticket--deal {
+    animation: none;
+  }
+
+  .btn:active {
+    transform: none !important;
+  }
+}
+
+/* views/share */
+/* "Lihat sebagai teman" is the longest label in the share ghost row: it gets a wider slot (2:2:3). */
+.ghost-row__btn--wide {
+  flex-grow: 1.5;
+  /* At 375px the label still doesn't fit: let it wrap to two lines instead of ellipsing.
+     Only this modifier wraps; the place-card ghost row stays single-line. */
+  white-space: normal;
+  line-height: 18px;
+  text-align: center;
+}
+
+.ghost-row__btn--wide > span {
+  overflow: visible;
+  text-overflow: clip;
+}
+
+/* views/lists-sheet */
+/* "Buka daftar dari link" (also on Welcome). */
+
+/* The disclosure row keeps the add-row size but reads in ink, not orange. */
+.link-import__toggle {
+  color: var(--ink);
+}
+
+/* The revealed paste form, lined up with the row content above it. */
+.link-import {
+  padding: 0 var(--sp-16) var(--sp-16);
+}
+
+.list-surface--flat .link-import {
+  padding: 0 var(--gutter) var(--sp-8);
+}
+
+/* views/friend */
+/* The page script handles horizontal swipes on the Friend cards; vertical pans and pinch-zoom stay native. */
+.carousel--swipe {
+  touch-action: pan-y pinch-zoom;
+}
+
+/* views/compare */
+/* Facility labels flow their icon inline, so a long label wraps under it and uses the whole
+   88px column instead of breaking mid-word beside the icon. */
+.cmp-row__label-text > .icon {
+  margin-right: var(--sp-8);
+  vertical-align: top;
+}
+
+/* views/editor */
+/* While "Lanjut bagikan" is disabled the bottom bar carries a hint line (8 + 18px), so the
+   screen leaves that much more room above the bar. */
+.screen--tall-bar {
+  padding-bottom: calc(var(--bar-h) + 26px + var(--sp-24));
+}
+
+/* views/place-form */
+
+/* The live preview ticket stays under the top bar while the form scrolls. */
+.place-form__preview {
+  position: sticky;
+  top: var(--topbar-h);
+  z-index: 10;
+  margin: 0 calc(-1 * var(--gutter));
+  padding: 0 var(--gutter) var(--sp-8);
+  background: var(--ground);
+}
+
+/* On a short viewport (a phone in landscape) the preview scrolls away with the form. */
+@media (max-height: 520px) {
+  .place-form__preview {
+    position: static;
+  }
+}
+
+/* The star in the rating input keeps its rating colour. */
+.input-wrap > .icon.star {
+  color: var(--star);
+}
