@@ -63,6 +63,11 @@
   --fill-strong:#E9DBBF; /* secondary buttons + segmented track ON ground */
   --fill-hover:#E2D1B1;
   --chat-wall:#EFE6D6;   /* Messages + Share chat preview only */
+  /* the page haze (warm at the top, see body::before) and the see-through bars over it */
+  --haze:#F6D3B3;
+  --haze-mid:#F4E2CC;
+  --frost:rgba(243,234,216,.72);       /* phone top bar, sticky preview */
+  --frost-pill:rgba(255,252,246,.62);  /* the floating top bar on wide screens */
   /* lines */
   --line:#EBE1CF;        /* 1px hairline dividers (decorative) */
   --line-dash:#D9C9AC;   /* dashed placeholders, input inset ring */

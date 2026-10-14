@@ -38,16 +38,17 @@ function band() {
   );
 }
 
-/** Three sample tickets fanned over the band's edge, back to front. Decoration only. */
+/**
+ * Three sample tickets fanned over the band's edge, back to front. Decoration only. Each sits in an
+ * item that casts its shadow (the ticket's notch mask would cut its own shadow off).
+ */
 function ticketStack(places) {
   const [back, middle, front] = places;
   const goPill = h('span', { class: 'go-pill' }, icon('message-circle', { size: 14 }), h('span', {}, tc('discuss')));
   return h(
     'div',
     { class: 'ticket-stack', attrs: { 'aria-hidden': 'true' } },
-    ticket(back),
-    ticket(middle),
-    ticket(front, { trail: goPill }),
+    [ticket(back), ticket(middle), ticket(front, { trail: goPill })].map((node) => h('div', {}, node)),
   );
 }
 
