@@ -4,6 +4,7 @@ import { topBar, langToggle, pageHeader, emptyState } from './components.js';
 import { getLang, tc } from './i18n.js';
 import { decodeList, CodecError } from './codec.js';
 import { getList } from './store.js';
+import { parseRoute } from './routes.js';
 
 // Explicit loaders keep every import path static.
 const VIEWS = {
@@ -16,41 +17,19 @@ const VIEWS = {
   random: () => import('./views/random.js'),
 };
 
-const FRIEND_VIEWS = { compare: 'compare', random: 'random' };
-
 const app = document.getElementById('app');
 let renderCount = 0;
 
-// ---- routing ----
+// ---- screen state (ctx.state) ----
 
-function safeDecode(part) {
-  try {
-    return decodeURIComponent(part);
-  } catch {
-    return part;
-  }
-}
+// One plain object per route: views keep what the user typed or picked in it, so a re-render of
+// the same route (language switch, ctx.rerender()) rebuilds the screen as it was. Any change of
+// location.hash starts over with {}.
+let screen = { hash: null, state: {} };
 
-/** location.hash → { view, params }. Unknown hashes go to the welcome screen. */
-function parseRoute(hash) {
-  const raw = hash.replace(/^#/, '');
-
-  if (raw.startsWith('d=')) {
-    const query = new URLSearchParams(raw);
-    const v = query.get('v') || '';
-    return {
-      view: FRIEND_VIEWS[v] || 'friend',
-      params: { payload: query.get('d') || '', v, from: query.get('from') || '', i: query.get('i') || '' },
-    };
-  }
-
-  const [section, id, sub, pid, ...rest] = raw.split('/').filter(Boolean).map(safeDecode);
-  if (section === 'list' && id && !rest.length) {
-    if (!sub) return { view: 'editor', params: { id } };
-    if (sub === 'share' && !pid) return { view: 'share', params: { id } };
-    if (sub === 'place' && pid) return { view: 'place-form', params: { id, pid: pid === 'new' ? null : pid } };
-  }
-  return { view: 'welcome', params: {} };
+function screenState() {
+  if (screen.hash !== location.hash) screen = { hash: location.hash, state: {} };
+  return screen.state;
 }
 
 // ---- decoding (memoized per payload) ----
@@ -137,10 +116,11 @@ function focusKey() {
   return label ? `${el.tagName.toLowerCase()}[aria-label="${CSS.escape(label)}"]` : null;
 }
 
-async function buildScreen(route) {
+async function buildScreen(route, state) {
   const ctx = {
     params: route.params,
     list: null,
+    state,
     nav,
     rerender: () => render({ navigated: false }),
   };
@@ -173,7 +153,7 @@ async function render({ navigated }) {
   const ticket = ++renderCount;
   const route = parseRoute(location.hash);
   const refocus = navigated ? null : focusKey();
-  const { node, title } = await buildScreen(route);
+  const { node, title } = await buildScreen(route, screenState());
   if (ticket !== renderCount) return; // a newer navigation won
 
   app.replaceChildren(node);

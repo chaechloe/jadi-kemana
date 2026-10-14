@@ -1,10 +1,11 @@
 // "Daftar kamu": the list switcher sheet. Its rows and the "open a list from a link" form are
 // exported too, so the Welcome screen shows the same UI.
-import { h, icon, uid, toast, openSheet } from '../ui.js';
-import { listRow, placeTile } from '../components.js';
+import { h, icon, toast, openSheet } from '../ui.js';
+import { listRow, placeTile, placesLabel } from '../components.js';
 import { getLang, t, tc, relativeTime } from '../i18n.js';
 import { getLists, createList, importList } from '../store.js';
 import { decodeList, CodecError } from '../codec.js';
+import * as routes from '../routes.js';
 
 const S = {
   id: {
@@ -38,8 +39,6 @@ const S = {
 };
 
 const decorative = { 'aria-hidden': 'true' };
-const listHash = (id) => `#/list/${id}`;
-const placesLabel = (n) => tc(n === 1 ? 'onePlace' : 'manyPlaces', { n });
 
 // ---- rows ----
 
@@ -59,7 +58,7 @@ export function listItem(list, { current = false, trail = null, onClick } = {}) 
       places: placesLabel(list.places.length),
       edited: relativeTime(list.updatedAt, getLang()),
     }),
-    href: listHash(list.id),
+    href: routes.list(list.id),
     onClick,
     trail,
     current,
@@ -69,7 +68,7 @@ export function listItem(list, { current = false, trail = null, onClick } = {}) 
 /** Creates an empty list and opens it in the editor. */
 export function startNewList(ctx) {
   const list = createList({ title: tc('newList'), from: '' });
-  ctx.nav(listHash(list.id));
+  ctx.nav(routes.list(list.id));
 }
 
 /** The "+ Daftar baru" row. `close` closes the sheet it sits in, if any. */
@@ -96,7 +95,7 @@ const LINK_PAYLOAD = /(?:^|[#&])d=([A-Za-z0-9_-]+)/;
 const BARE_PAYLOAD = /^\d[a-z][A-Za-z0-9_-]+$/; // version digit, mode letter, base64url data
 
 /** The payload inside a pasted link or share message, or a pasted bare payload; '' when there is none. */
-export function findPayload(text) {
+function findPayload(text) {
   const value = String(text ?? '').trim();
   const match = value.match(LINK_PAYLOAD);
   if (match) return match[1];
@@ -147,24 +146,18 @@ function toastAfterRender(message) {
   timer = setTimeout(show, TOAST_FALLBACK_MS);
 }
 
-// The import form's draft. A language switch rebuilds the screen while the old form is still
-// mounted; the new form picks the draft up (open or not, and the pasted link), so nothing is lost.
-// Any other arrival (another screen, a fresh sheet) starts closed and empty.
-let importDraft = null; // { key, row, draft: { formId, inputId, errorId, open, value } }
-
 /**
  * "Buka daftar dari link": a disclosure row revealing a paste field and a "Buka" button.
  * A good link is saved (replacing a list with the same id) and opened in the editor.
- * `close` closes the sheet it sits in, if any.
+ * `close` closes the sheet it sits in, if any. On a page the draft (open or not, the pasted link)
+ * lives in ctx.state, so a language switch keeps it; a sheet starts closed and empty every time.
  */
 export function linkImportItem(ctx, { close } = {}) {
-  const key = `${close ? 'sheet' : 'page'}:${location.hash || '#/'}`;
-  const resume = importDraft?.key === key && importDraft.row.isConnected;
-  // The ids are kept too, so main.js can put focus back on the same control.
-  const draft = resume
-    ? importDraft.draft
-    : { formId: uid('link-import'), inputId: uid('list-link'), errorId: uid('list-link-error'), open: false, value: '' };
-  const { formId, inputId, errorId } = draft;
+  const draft = close ? {} : (ctx.state.linkImport ??= {}); // { open, value }
+  // Stable ids, so main.js can put focus back on the same control after a re-render.
+  const formId = close ? 'jk-sheet-link-import' : 'jk-link-import';
+  const inputId = `${formId}-input`;
+  const errorId = `${formId}-error`;
   let busy = false;
 
   const chevron = h('span', { class: 'row__trail' }, icon('chevron-down'));
@@ -195,7 +188,7 @@ export function linkImportItem(ctx, { close } = {}) {
     },
     on: { input: onInput },
   });
-  input.value = draft.value;
+  input.value = draft.value ?? '';
   const error = h('p', { class: 'helper helper--error', id: errorId, attrs: { role: 'alert', hidden: true } });
   const submit = h('button', { class: 'btn btn--secondary btn--sm', attrs: { type: 'submit' } }, h('span', {}, t(S, 'open')));
 
@@ -253,16 +246,13 @@ export function linkImportItem(ctx, { close } = {}) {
       showError(result.error);
       return;
     }
-    importDraft = null; // done: coming back starts closed and empty
     close?.();
     toastAfterRender(t(S, result.existed ? 'updated' : 'opened'));
-    ctx.nav(listHash(result.list.id));
+    ctx.nav(routes.list(result.list.id));
   }
 
   if (draft.open) setOpen(true, { focus: false });
-  const row = h('li', {}, toggle, form);
-  importDraft = { key, row, draft };
-  return row;
+  return h('li', {}, toggle, form);
 }
 
 // ---- the sheet ----
@@ -287,7 +277,7 @@ export function openListsSheet(ctx, { currentId = null } = {}) {
     return listItem(list, {
       current,
       trail: current ? h('span', { class: 'row__trail row__trail--check' }, icon('check')) : null,
-      onClick: rowClick(ctx, closeSheet, listHash(list.id), current),
+      onClick: rowClick(ctx, closeSheet, routes.list(list.id), current),
     });
   });
 

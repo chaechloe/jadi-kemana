@@ -61,7 +61,7 @@ export function colorHex(key) {
 const SAMPLE_PLACES = [
   {
     name: 'Kinterra Coffee & Space', emoji: '🛋️', color: 'purple',
-    address: 'Jl. Talaga Bodas No.27, Lengkong, Bandung', hours: '', rating: 4.9, ratingCount: '1146',
+    address: 'Jl. Talaga Bodas No.27, Lengkong, Bandung', hours: '', rating: 4.9, ratingCount: '',
     perks: ['wifi', 'plug', 'outdoor', 'meeting'], custom: { id: ['Ada rak buku'], en: ['Bookshelf'] },
     note: {
       id: 'Datang jam 9–10 biar kebagian sofa. Ada private room juga kalau mau kerja fokus.',
@@ -71,7 +71,7 @@ const SAMPLE_PLACES = [
   },
   {
     name: 'HI Brew Coffee', emoji: '🫖', color: 'red',
-    address: 'Jl. Boscha No.43, Pasteur, Bandung', hours: '09.00–22.00', rating: 4.6, ratingCount: '3290',
+    address: 'Jl. Boscha No.43, Pasteur, Bandung', hours: '09.00–22.00', rating: 4.6, ratingCount: '',
     perks: ['plug', 'ac'], custom: { id: ['Tempat taruh tas', 'Ada lesehan'], en: ['Bag hooks at tables', 'Floor seating'] },
     note: {
       id: 'Tiap meja ada colokan, cocok buat kerja lama.',
@@ -91,7 +91,7 @@ const SAMPLE_PLACES = [
   },
   {
     name: 'Goffee Doughnut & Coffee', emoji: '🍩', color: 'brown',
-    address: 'Jl. Dipati Ukur No.138, Lebakgede, Bandung', hours: '07.00–22.00', rating: 4.8, ratingCount: '643',
+    address: 'Jl. Dipati Ukur No.138, Lebakgede, Bandung', hours: '07.00–22.00', rating: 4.8, ratingCount: '',
     perks: ['wifi', 'plug'], custom: { id: ['Bisa print'], en: ['Printing available'] },
     note: {
       id: 'Donatnya enak, terus bisa print dokumen juga.',
@@ -101,7 +101,7 @@ const SAMPLE_PLACES = [
   },
   {
     name: 'Cloudpath Coffee & Space', emoji: '☁️', color: 'indigo',
-    address: 'Jl. Siliwangi No.14, Hegarmanah, Bandung', hours: 'open24', rating: 3.4, ratingCount: '161',
+    address: 'Jl. Siliwangi No.14, Hegarmanah, Bandung', hours: 'open24', rating: 3.4, ratingCount: '',
     perks: ['open24', 'wifi', 'plug', 'cheap'], custom: { id: [], en: [] },
     note: {
       id: 'Buka 24 jam, aman buat yang kerja sampai malam.',
@@ -111,7 +111,8 @@ const SAMPLE_PLACES = [
   },
 ];
 
-const SAMPLE_TITLE = { id: 'Spot WFC Bandung', en: 'Bandung work-from-cafe spots' };
+// Labelled as an example: the cafes are real, but their hours and ratings date over time.
+const SAMPLE_TITLE = { id: 'Contoh: Spot WFC Bandung', en: 'Example: Bandung work-from-cafe spots' };
 
 /**
  * The example list's id. It is the same on every phone, so it is never stored:

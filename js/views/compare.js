@@ -1,9 +1,10 @@
 // Compare (#d=…&v=compare): two places side by side, then ask the group "A or B?".
-import { h, icon, uid, toast, copyText, shareText } from '../ui.js';
-import { topBar, pageHeader, sendButton, ghostRow, emptyState } from '../components.js';
+import { h, icon, uid, copyWithToast, shareOrCopy } from '../ui.js';
+import { topBar, pageHeader, sendButton, ghostRow, deadEnd, bottomBar, hidden } from '../components.js';
 import { getLang, t, tc, formatHours, formatRating } from '../i18n.js';
 import { PERKS, EMOJIS, colorHex } from '../data.js';
 import { waLink, compareMessage, isSafeMapsUrl } from '../links.js';
+import * as routes from '../routes.js';
 
 const S = {
   id: {
@@ -57,17 +58,9 @@ const S = {
 // The A/B choice lives in this history entry, so a language switch (which re-renders) keeps it.
 const STATE_KEY = 'jkComparePair';
 
-const hidden = (text) => h('span', { class: 'visually-hidden' }, text);
 const decorative = { 'aria-hidden': 'true' };
 
-// ---- navigation and remembered choice ----
-
-/** The friend view's hash for this list, keeping `from` (preview mode). */
-function friendHash({ payload, from }) {
-  const query = new URLSearchParams({ d: payload });
-  if (from) query.set('from', from);
-  return `#${query}`;
-}
+// ---- remembered choice ----
 
 function recallPair(count) {
   try {
@@ -220,24 +213,12 @@ function comparisonTable(a, b) {
 
 // ---- screen ----
 
-function notEnoughPlaces(back) {
-  return h(
-    'div',
-    { class: 'screen screen--nobar' },
-    topBar({ back }),
-    pageHeader({ title: t(S, 'title') }),
-    emptyState({
-      icon: 'columns-2',
-      text: t(S, 'needTwo'),
-      action: h('a', { class: 'btn btn--ghost', attrs: { href: back } }, t(S, 'toList')),
-    }),
-  );
-}
-
 export async function render(ctx) {
   const places = ctx.list?.places ?? [];
-  const back = friendHash(ctx.params);
-  if (places.length < 2) return notEnoughPlaces(back);
+  const back = routes.friend(ctx.params.payload, { from: ctx.params.from });
+  if (places.length < 2) {
+    return deadEnd({ back, title: t(S, 'title'), icon: 'columns-2', text: t(S, 'needTwo'), label: t(S, 'toList') });
+  }
 
   let [indexA, indexB] = recallPair(places.length);
   const errorId = uid('cmp-error');
@@ -259,24 +240,13 @@ export async function render(ctx) {
   });
 
   const content = h('div');
-  const bar = h('div', { class: 'bottom-bar' });
-
-  function copyMessage() {
-    // A failed copy shows the alert glyph instead of the success check.
-    copyText(message()).then((ok) => toast(t(S, ok ? 'copied' : 'copyFailed'), { icon: ok ? 'check' : 'alert-circle' }));
-  }
-
-  function shareMessage() {
-    // shareText() must run synchronously inside the click; fall back to copying.
-    shareText(message()).then((result) => {
-      if (result === 'unsupported') copyMessage();
-    });
-  }
+  const bar = bottomBar();
+  const toasts = { done: t(S, 'copied'), failed: t(S, 'copyFailed') };
 
   function actions(same) {
     const ghosts = ghostRow([
-      { icon: 'copy', label: tc('copyText'), onClick: copyMessage },
-      { icon: 'share', label: tc('share'), onClick: shareMessage },
+      { icon: 'copy', label: tc('copyText'), onClick: () => copyWithToast(message(), toasts) },
+      { icon: 'share', label: tc('share'), onClick: () => shareOrCopy(message(), toasts) },
     ]);
     ghosts.classList.add('mt-16');
     for (const button of ghosts.querySelectorAll('button')) button.disabled = same;

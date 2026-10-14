@@ -1,29 +1,52 @@
 // Add or edit a place: #/list/<id>/place/new and #/list/<id>/place/<pid>.
-// A Maps link (or the share text) fills in the name and a rough address; rating, hours and perks
-// are typed by hand. While typing, only the nodes that change are patched (the preview ticket,
-// tags, helpers, chips), so the form never re-renders under the user's fingers.
-import { h, icon, toast, openSheet } from '../ui.js';
-import { topBar, pageHeader, emptyState, ticket, iconButton } from '../components.js';
+// Pasting a Maps link, share text or a place panel copied from Google Maps fills in what it carries
+// (name, address, and from a panel the rating too; the decisions live in autofill.js). The rest is
+// typed by hand. While typing, only the nodes that change
+// are patched (the preview ticket, tags, helpers, chips), so the form never re-renders under the
+// user's fingers. The draft lives in ctx.state, so a language switch rebuilds the form as it was.
+import { h, icon, toast } from '../ui.js';
+import {
+  topBar,
+  ticket,
+  iconButton,
+  deadEnd,
+  bottomBar,
+  primaryButton,
+  deleteRow,
+  confirmDelete,
+} from '../components.js';
 import { t, tc, getLang, formatHours, COMMON } from '../i18n.js';
 import { PERKS, COLORS, EMOJIS, LIMITS, colorHex } from '../data.js';
 import { getList, upsertPlace, removePlace } from '../store.js';
-import { parseMapsInput, isSafeMapsUrl } from '../links.js';
-import { approxAddress } from '../geo.js';
+import { isSafeMapsUrl } from '../links.js';
+import {
+  autofillState,
+  mapsFromLink,
+  pasteLink,
+  editLink,
+  editField,
+  holdLink,
+  readLink,
+  lookupAddress,
+  statusMessage,
+} from '../autofill.js';
+import * as routes from '../routes.js';
 
 const S = {
   id: {
     nameLabel: 'Nama tempat',
     namePh: 'Contoh: Kedai Kopi Sebelah',
     nameRequired: 'Nama tempatnya diisi dulu ya.',
-    linkLabel: 'Link atau teks share Google Maps',
+    linkLabel: 'Link atau info tempat dari Google Maps',
     linkPh: 'Tempel di sini',
     fetch: 'Ambil info',
-    emptyHelp: 'Di Google Maps: buka tempatnya → Bagikan → Salin link.',
-    notMaps: 'Ini bukan link Google Maps',
-    shortMsg: 'Link pendek ini nggak kebaca otomatis.',
-    pasteShare: 'Tempel teks share-nya',
+    emptyHelp: 'Tempel link dari Google Maps. Di laptop bisa juga: blok teks info tempatnya (dari nama sampai alamat), salin, terus tempel.',
+    notMaps: 'Ini bukan link atau info tempat dari Google Maps',
+    shortMsg: 'Link pendek ini nggak bisa dibaca otomatis, tapi tetap kesimpan buat tombol Maps.',
+    pasteShare: 'Tempel info tempatnya',
     manual: 'Isi manual aja',
-    pasteHint: 'Di Maps, tap Bagikan, salin semua teksnya (nama, alamat, link), terus tempel di sini.',
+    pasteHint: 'Di laptop: buka tempatnya di Google Maps, blok teks dari nama sampai alamat, salin, terus tempel di sini.',
+    filledDetails: 'Info tempatnya udah keisi dari Maps. Cek lagi ya.',
     filledBoth: 'Nama & alamat udah keisi dari Maps. Cek lagi ya.',
     filledName: 'Nama tempat udah keisi dari Maps. Cek lagi ya.',
     filledAddress: 'Alamat udah keisi dari Maps. Cek lagi ya.',
@@ -33,7 +56,7 @@ const S = {
     addrHelp: 'Alamat kira-kira, tambahin nomornya ya.',
     addrLoading: 'Lagi nyari alamat kira-kiranya…',
     osmCredit: '© OpenStreetMap',
-    manualInfo: 'Rating, jam buka, sama fasilitas isi sendiri ya, datanya nggak boleh diambil dari Google.',
+    manualInfo: 'Jam buka sama fasilitas isi sendiri ya, rating juga kalau belum keisi.',
     ratingLabel: 'Rating (opsional)',
     ratingPh: '4.8',
     ratingError: 'Isi angka 0,1 sampai 5 ya.',
@@ -68,15 +91,16 @@ const S = {
     nameLabel: 'Place name',
     namePh: 'e.g. The Corner Coffee',
     nameRequired: 'Add the place name first.',
-    linkLabel: 'Google Maps link or share text',
+    linkLabel: 'Google Maps link or place info',
     linkPh: 'Paste it here',
     fetch: 'Get details',
-    emptyHelp: 'In Google Maps: open the place → Share → Copy link.',
-    notMaps: "That's not a Google Maps link",
-    shortMsg: "We couldn't read this short link.",
-    pasteShare: 'Paste the share text',
+    emptyHelp: "Paste a link from Google Maps. On a laptop you can also select the place's info (from the name down to the address), copy it and paste it.",
+    notMaps: "That's not a Google Maps link or place info",
+    shortMsg: "This short link can't be read automatically, but it's kept for the Maps button.",
+    pasteShare: 'Paste the place info',
     manual: 'Fill in manually',
-    pasteHint: 'In Maps, tap Share, copy all the text (name, address, link), then paste it here.',
+    pasteHint: 'On a laptop: open the place in Google Maps, select the text from the name down to the address, copy it and paste it here.',
+    filledDetails: 'Place details filled in from Maps. Give them a quick check.',
     filledBoth: 'Name and address filled in from Maps. Give them a quick check.',
     filledName: 'Place name filled in from Maps. Give it a quick check.',
     filledAddress: 'Address filled in from Maps. Give it a quick check.',
@@ -86,7 +110,7 @@ const S = {
     addrHelp: 'Rough address. Add the street number.',
     addrLoading: 'Looking up a rough address…',
     osmCredit: '© OpenStreetMap',
-    manualInfo: "Fill in rating, hours and perks yourself. Google doesn't let us copy them.",
+    manualInfo: "Fill in hours and perks yourself, and the rating if it isn't filled in yet.",
     ratingLabel: 'Rating (optional)',
     ratingPh: '4.8',
     ratingError: 'Use a number from 0.1 to 5.',
@@ -124,30 +148,30 @@ const OSM_CREDIT_URL = 'https://www.openstreetmap.org/copyright';
 const HOURS_PRESETS = ['08.00–22.00', '10.00–22.00', 'open24'];
 const COUNT_DIGITS = 9;
 
-// The draft on screen. A language switch rebuilds the view while the old one is still mounted;
-// the new view picks the draft up, so nothing typed is lost.
-let session = null; // { key, state, root, ui }
+// The ui patchers of the form on screen, by its state (ctx.state): an address lookup that answers
+// after a language switch patches the rebuilt form, not the one it started from.
+const screens = new WeakMap();
 
 export async function render(ctx) {
   const { id, pid } = ctx.params;
   const title = tc(pid ? 'editPlace' : 'addPlace');
+  const missing = (back, text, label) => deadEnd({ back, title, icon: 'alert-circle', text, label });
   const list = getList(id);
-  if (!list) return missingScreen({ title, text: tc('errNotFound'), href: '#/', label: tc('goHome') });
+  if (!list) return missing(routes.home(), tc('errNotFound'), tc('goHome'));
 
   const stored = pid ? list.places.find((p) => p.id === pid) : null;
-  if (pid && !stored) {
-    return missingScreen({ title, text: t(S, 'placeMissing'), href: editorHash(id), label: t(S, 'backToList') });
-  }
+  if (pid && !stored) return missing(routes.list(id), t(S, 'placeMissing'), t(S, 'backToList'));
 
-  const key = `${id}/${pid || 'new'}`;
-  const resume = session?.key === key && session.root.isConnected;
-  const state = resume ? session.state : createState(list, stored);
-  const prefill = resume || pid ? '' : takePrefill();
+  const state = ctx.state;
+  const fresh = !state.place;
+  if (fresh) Object.assign(state, createState(list, stored));
+  const prefill = fresh && !pid ? takePrefill() : '';
+  if (prefill) pasteLink(state, prefill);
 
   const f = { ctx, list, state, ui: {}, refs: {} };
   const root = buildForm(f);
-  session = { key, state, root, ui: f.ui };
-  if (prefill) f.ui.prefill(prefill);
+  screens.set(state, f.ui);
+  if (prefill) getDetails(f);
   return root;
 }
 
@@ -168,14 +192,8 @@ function createState(list, stored) {
     place,
     editing: Boolean(stored),
     originalName: stored?.name ?? '',
-    link: place.maps, // the link field, as shown
-    pasted: null, // { raw, shown }: the last paste with its line breaks (inputs drop them)
+    ...autofillState(place.maps), // link, pasted, status, filled, auto, approx, lookup
     rating: place.rating == null ? '' : String(place.rating),
-    status: 'idle', // idle | filled | short | paste | invalid
-    filled: { name: false, address: false }, // what the last link filled in
-    auto: { name: false, address: false }, // fields still holding a value from Maps
-    approx: 'none', // none | loading | done: a street-level address from OpenStreetMap
-    lookup: 0, // id of the latest address lookup; older answers are dropped
     errors: { name: false, rating: false },
     customOpen: false,
     customDraft: '',
@@ -191,17 +209,6 @@ function takePrefill() {
   } catch {
     return '';
   }
-}
-
-/** What "Ambil info" reads: the pasted text with its line breaks while the field still shows it. */
-const linkText = (state) => (state.pasted && state.pasted.shown === state.link ? state.pasted.raw : state.link);
-
-/** The Maps URL in the link field: '' when the field is empty, null when it holds no Maps link. */
-function mapsFromLink(state) {
-  const text = linkText(state);
-  if (!text.trim()) return '';
-  const url = parseMapsInput(text)?.url;
-  return url && isSafeMapsUrl(url) ? url : null;
 }
 
 /**
@@ -227,103 +234,36 @@ function normalizeHours(text) {
 /** Hours as the field shows them in the current language. */
 const hoursText = (hours) => (hours === 'open24' ? tc('open24') : formatHours(hours, getLang()) ?? '');
 
-const editorHash = (listId) => `#/list/${encodeURIComponent(listId)}`;
-
 // ---- Maps auto-fill ----
 
-/** "Ambil info": reads the link field and fills what it can. */
+/** "Ambil info": reads the link field, fills what it can and patches the fields it touched. */
 function getDetails(f) {
   const { state, ui, refs } = f;
-  const text = linkText(state);
-  if (!text.trim()) {
+  const { status, coords } = readLink(state);
+  if (status === 'invalid') ui.status();
+  if (status === 'empty' || status === 'invalid') {
     refs.link.focus();
     return;
   }
 
-  const result = parseMapsInput(text);
-  if (!result || !isSafeMapsUrl(result.url)) {
-    state.status = 'invalid';
-    ui.status();
-    refs.link.focus();
-    return;
-  }
-
-  state.place.maps = result.url;
-  ui.mapsLink();
-  // A short link alone carries no name; the share text around it does.
-  if (result.short && !result.name) {
-    // The short link still replaces place.maps, so whatever an earlier link filled in
-    // belongs to another place: drop it rather than save place A's name with place B's link.
-    clearAutoFilled(state);
-    state.filled = { name: false, address: false };
-    state.status = 'short';
-    ui.name();
-    ui.address();
-    ui.preview();
-    ui.status();
-    return;
-  }
-  fillFromMaps(f, result);
-}
-
-/** A new link replaces what an earlier link filled in, never what the user typed. */
-function clearAutoFilled(state) {
-  cancelLookup(state);
-  for (const key of ['name', 'address']) {
-    if (!state.auto[key]) continue;
-    state.place[key] = '';
-    state.auto[key] = false;
-  }
-  if (!state.place.address) state.approx = 'none';
-}
-
-function fillFromMaps(f, result) {
-  const { state, ui } = f;
-  clearAutoFilled(state);
-
-  state.filled = {
-    name: fillAuto(state, 'name', result.name),
-    address: fillAuto(state, 'address', result.address),
-  };
   if (state.filled.name) state.errors.name = false;
-  if (result.lat !== null && !state.place.address) lookupAddress(state, result.lat, result.lng);
-  state.status = 'filled';
-
+  if (coords) {
+    lookupAddress(state, coords, getLang()).then((answered) => {
+      const live = answered && screens.get(state);
+      if (!live) return;
+      live.address();
+      live.preview();
+      live.status();
+    });
+  }
+  ui.mapsLink();
   ui.name();
   ui.address();
+  ui.rating();
+  ui.count();
+  ui.hours();
   ui.preview();
   ui.status();
-}
-
-/** Puts a value from Maps into an empty field and marks it as auto-filled. */
-function fillAuto(state, key, value) {
-  if (!value || state.place[key].trim()) return false;
-  state.place[key] = value;
-  state.auto[key] = true;
-  return true;
-}
-
-function cancelLookup(state) {
-  state.lookup += 1;
-  if (state.approx === 'loading') state.approx = 'none';
-}
-
-/** Fills the address from the coordinates (OpenStreetMap), unless the user got there first. */
-async function lookupAddress(state, lat, lng) {
-  const id = ++state.lookup;
-  state.approx = 'loading';
-  const address = await approxAddress(lat, lng, getLang());
-  if (id !== state.lookup) return; // a newer link or an edit took over
-
-  const filled = Boolean(address) && fillAuto(state, 'address', address);
-  state.approx = filled ? 'done' : 'none';
-  state.filled.address = filled;
-
-  // The view may have been rebuilt (language switch) while waiting: patch the one on screen.
-  if (session?.state !== state) return;
-  session.ui.address();
-  session.ui.preview();
-  session.ui.status();
 }
 
 // ---- small DOM helpers ----
@@ -395,13 +335,13 @@ function buildForm(f) {
       ),
       h('div', { class: 'card__section' }, lookFields(f), noteField(f)),
     ),
-    f.state.editing && deleteRow(f),
-    bottomBar(f),
+    f.state.editing && deleteButton(f),
+    bottomBar(primaryButton({ label: tc('savePlace'), onClick: () => save(f) })),
   );
 }
 
 function header(f) {
-  const close = iconButton({ icon: 'x', label: tc('cancel'), href: editorHash(f.list.id) });
+  const close = iconButton({ icon: 'x', label: tc('cancel'), href: routes.list(f.list.id) });
   const title = h('h1', { class: 'topbar__title', attrs: { tabindex: '-1' } }, tc(f.state.editing ? 'editPlace' : 'addPlace'));
   return topBar({ start: [close, title] });
 }
@@ -443,10 +383,12 @@ function linkField(f) {
         });
       },
       input: () => {
-        const wasEmpty = !state.link.trim();
-        state.link = input.value;
-        if (pastedText) state.pasted = { raw: pastedText, shown: input.value };
-        linkChanged(f, wasEmpty);
+        const pasted = pastedText !== null;
+        const changed = editLink(state, input.value, pastedText);
+        ui.mapsLink();
+        if (changed.lookup) ui.addressMeta();
+        if (changed.status) ui.status();
+        if (pasted) getDetails(f); // a paste fills in right away; "Ambil info" stays for typed links
       },
       keydown: (event) => {
         if (event.key !== 'Enter') return;
@@ -468,13 +410,6 @@ function linkField(f) {
     show(status, statusContent(f));
     input.setAttribute('aria-invalid', String(state.status === 'invalid'));
   };
-  ui.prefill = (text) => {
-    const shown = text.replace(/\s*[\r\n]+\s*/g, ' ').trim();
-    state.pasted = { raw: text, shown };
-    state.link = shown;
-    input.value = shown;
-    getDetails(f);
-  };
   ui.status();
 
   return h(
@@ -491,49 +426,29 @@ function linkField(f) {
   );
 }
 
-// Typing in the link field keeps place.maps in step and clears an old result or error.
-function linkChanged(f, wasEmpty) {
-  const { state, ui } = f;
-  state.place.maps = mapsFromLink(state) ?? '';
-  ui.mapsLink();
-  if (state.approx === 'loading') {
-    cancelLookup(state);
-    ui.addressMeta();
-  }
-  if (state.status !== 'idle' || wasEmpty !== !state.link.trim()) {
-    state.status = 'idle';
-    ui.status();
-  }
-}
-
+/** The line under the link field for the current status (autofill.statusMessage), or null. */
 function statusContent(f) {
-  const { state } = f;
-  switch (state.status) {
+  const key = statusMessage(f.state);
+  if (!key) return null;
+  switch (f.state.status) {
     case 'invalid':
-      return h('p', { class: 'helper helper--error' }, icon('alert-circle', { size: 14 }), h('span', {}, t(S, 'notMaps')));
+      return h('p', { class: 'helper helper--error' }, icon('alert-circle', { size: 14 }), h('span', {}, t(S, key)));
     case 'short':
-      return shortLinkNote(f);
-    case 'paste':
-      return h('p', { class: 'helper' }, t(S, 'pasteHint'));
+      return shortLinkNote(f, t(S, key));
     case 'filled':
-      return h('p', { class: 'hint mt-8' }, icon('check', { size: 14 }), h('span', {}, t(S, filledKey(state.filled))));
-    default:
-      return state.link.trim() ? null : h('p', { class: 'helper' }, t(S, 'emptyHelp'));
+      return h('p', { class: 'hint mt-8' }, icon('check', { size: 14 }), h('span', {}, t(S, key)));
+    default: // the paste hint, or the help under an empty field
+      return h('p', { class: 'helper' }, t(S, key));
   }
 }
 
-function filledKey({ name, address }) {
-  if (name && address) return 'filledBoth';
-  if (name) return 'filledName';
-  return address ? 'filledAddress' : 'linkSaved';
-}
-
-function shortLinkNote(f) {
+function shortLinkNote(f, message) {
   const { state, ui, refs } = f;
   const action = (key, onClick) =>
     h('button', { class: 'btn btn--ghost', attrs: { type: 'button' }, on: { click: onClick } }, h('span', {}, t(S, key)));
 
   const pasteShare = () => {
+    holdLink(state);
     state.status = 'paste';
     ui.status();
     refs.link.focus();
@@ -552,7 +467,7 @@ function shortLinkNote(f) {
     h(
       'div',
       { class: 'note__body' },
-      h('p', {}, t(S, 'shortMsg')),
+      h('p', {}, message),
       h('div', { class: 'note__actions' }, action('pasteShare', pasteShare), action('manual', manual)),
     ),
   );
@@ -568,8 +483,7 @@ function nameField(f) {
     attrs: { maxlength: LIMITS.name, autocapitalize: 'words', placeholder: t(S, 'namePh'), 'aria-required': 'true' },
     on: {
       input: () => {
-        state.place.name = input.value;
-        state.auto.name = false;
+        editField(state, 'name', input.value);
         if (input.value.trim()) state.errors.name = false;
         ui.nameMeta();
         ui.preview();
@@ -600,11 +514,7 @@ function addressField(f) {
     attrs: { maxlength: LIMITS.address, placeholder: t(S, 'addrPh') },
     on: {
       input: () => {
-        state.place.address = input.value;
-        state.auto.address = false;
-        // Typing wins over a lookup still on its way; an emptied field drops the OSM credit.
-        if (state.approx === 'loading') cancelLookup(state);
-        if (!input.value.trim()) state.approx = 'none';
+        editField(state, 'address', input.value); // typing wins over a lookup still on its way
         ui.addressMeta();
         ui.preview();
       },
@@ -659,7 +569,7 @@ function ratingFields(f) {
     attrs: { inputmode: 'decimal', maxlength: 4, placeholder: t(S, 'ratingPh') },
     on: {
       input: () => {
-        state.rating = rating.value;
+        editField(state, 'rating', rating.value);
         if (state.errors.rating) check();
       },
       blur: check,
@@ -672,6 +582,10 @@ function ratingFields(f) {
     describe(rating, state.errors.rating && error.id);
   };
   ui.ratingMeta();
+  ui.rating = () => {
+    setValue(rating, state.rating);
+    if (state.errors.rating) check();
+  };
 
   const count = textInput('pf-count', state.place.ratingCount, {
     cls: 'input--num',
@@ -680,10 +594,11 @@ function ratingFields(f) {
       input: () => {
         const digits = count.value.replace(/\D/g, '').slice(0, COUNT_DIGITS);
         setValue(count, digits);
-        state.place.ratingCount = digits;
+        editField(state, 'ratingCount', digits);
       },
     },
   });
+  ui.count = () => setValue(count, state.place.ratingCount);
 
   return h(
     'div',
@@ -706,7 +621,7 @@ function hoursField(f) {
     attrs: { maxlength: LIMITS.hours, placeholder: t(S, 'hoursPh') },
     on: {
       input: () => {
-        state.place.hours = input.value;
+        editField(state, 'hours', input.value);
         ui.hoursChips();
       },
     },
@@ -714,7 +629,7 @@ function hoursField(f) {
 
   // Picking a preset fills the field; picking it again clears it.
   const pick = (preset) => {
-    state.place.hours = normalizeHours(state.place.hours) === preset ? '' : preset;
+    editField(state, 'hours', normalizeHours(state.place.hours) === preset ? '' : preset);
     input.value = hoursText(state.place.hours);
     ui.hoursChips();
   };
@@ -731,6 +646,10 @@ function hoursField(f) {
     chips.forEach((chip, i) => setPressed(chip, current === HOURS_PRESETS[i]));
   };
   ui.hoursChips();
+  ui.hours = () => {
+    setValue(input, hoursText(state.place.hours));
+    ui.hoursChips();
+  };
 
   return h(
     'div',
@@ -937,18 +856,6 @@ function noteField(f) {
 
 // ---- save and delete ----
 
-function bottomBar(f) {
-  return h(
-    'div',
-    { class: 'bottom-bar' },
-    h(
-      'button',
-      { class: 'btn btn--primary btn--lg btn--block', attrs: { type: 'button' }, on: { click: () => save(f) } },
-      h('span', {}, tc('savePlace')),
-    ),
-  );
-}
-
 function save(f) {
   const { ctx, list, state, ui, refs } = f;
   const name = state.place.name.trim();
@@ -984,61 +891,23 @@ function save(f) {
     toast(getList(list.id) ? t(S, 'full', { n: LIMITS.places }) : tc('errNotFound'), { icon: 'alert-circle' });
     return;
   }
-  session = null;
-  ctx.nav(editorHash(list.id));
+  ctx.nav(routes.list(list.id));
   toast(t(S, 'saved'));
 }
 
-function deleteRow(f) {
-  return h(
-    'div',
-    { class: 'center-row mt-24' },
-    h(
-      'button',
-      { class: 'btn btn--danger-link', attrs: { type: 'button' }, on: { click: () => confirmDelete(f) } },
-      icon('trash', { size: 16 }),
-      h('span', {}, t(S, 'del')),
-    ),
-  );
-}
-
-function confirmDelete(f) {
+function deleteButton(f) {
   const { ctx, list, state } = f;
-  let close = () => {};
   const remove = () => {
-    close();
     removePlace(list.id, state.place.id);
-    session = null;
-    ctx.nav(editorHash(list.id));
+    ctx.nav(routes.list(list.id));
     toast(t(S, 'deleted'));
   };
-  const button = (cls, content, onClick) =>
-    h('button', { class: ['btn', cls, 'btn--block'], attrs: { type: 'button' }, on: { click: onClick } }, content);
-  const cancel = button('btn--ghost', h('span', {}, tc('cancel')), () => close());
-
-  close = openSheet(
-    [
-      h('p', { class: 'muted' }, t(S, 'delBody', { name: state.originalName })),
-      h(
-        'div',
-        { class: 'sheet__actions' },
-        button('btn--danger', [icon('trash', { size: 16 }), h('span', {}, t(S, 'delConfirm'))], remove),
-        cancel,
-      ),
-    ],
-    { label: t(S, 'delTitle') },
-  );
-  cancel.focus(); // the safe choice starts focused
-}
-
-// ---- dead ends ----
-
-function missingScreen({ title, text, href, label: actionLabel }) {
-  return h(
-    'div',
-    { class: 'screen screen--nobar' },
-    topBar({ back: href }),
-    pageHeader({ title }),
-    emptyState({ icon: 'alert-circle', text, action: h('a', { class: 'btn btn--ghost', attrs: { href } }, actionLabel) }),
-  );
+  const ask = () =>
+    confirmDelete({
+      title: t(S, 'delTitle'),
+      body: h('p', { class: 'muted' }, t(S, 'delBody', { name: state.originalName })),
+      confirm: t(S, 'delConfirm'),
+      onConfirm: remove,
+    });
+  return deleteRow({ label: t(S, 'del'), onClick: ask, class: 'mt-24' });
 }

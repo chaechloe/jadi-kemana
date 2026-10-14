@@ -2,6 +2,7 @@
 // Data © OpenStreetMap contributors (ODbL); views show the credit when it is used.
 import { getLang } from './i18n.js';
 import { LIMITS } from './data.js';
+import { CONFIG } from './config.js';
 
 const ENDPOINT = 'https://nominatim.openstreetmap.org/reverse';
 const CACHE_KEY = 'jk.v1.geo';
@@ -81,8 +82,9 @@ async function reverse(lat, lng, lang) {
   }
 }
 
-/** A short street-level address for the coordinates, or null on any failure. */
+/** A short street-level address for the coordinates, or null on any failure (or when switched off in config.js). */
 export async function approxAddress(lat, lng, lang = getLang()) {
+  if (!CONFIG.addressLookup) return null;
   try {
     const la = Number(lat);
     const lo = Number(lng);

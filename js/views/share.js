@@ -1,11 +1,12 @@
 // Share screen (#/list/<id>/share): a preview of the group message, how far the link fits
 // across chat apps, and the ways to send it. See docs/ARCHITECTURE.md.
-import { h, icon, toast, openSheet, copyText, shareText, uid } from '../ui.js';
-import { topBar, pageHeader, sendButton, ghostRow, emptyState } from '../components.js';
+import { h, icon, openSheet, copyWithToast, shareOrCopy, uid } from '../ui.js';
+import { topBar, pageHeader, sendButton, ghostRow, deadEnd, note, placesLabel } from '../components.js';
 import { getLang, t, tc } from '../i18n.js';
 import { getList, markShared } from '../store.js';
 import { encodeList, listUrl } from '../codec.js';
 import { waLink, listMessage } from '../links.js';
+import * as routes from '../routes.js';
 
 const S = {
   id: {
@@ -57,7 +58,6 @@ const PREVIEW_PAYLOAD_CHARS = 24;
 
 // ---- small helpers ----
 
-const placesLabel = (n) => tc(n === 1 ? 'onePlace' : 'manyPlaces', { n });
 const formatNumber = (n, lang) => new Intl.NumberFormat(lang === 'en' ? 'en-US' : 'id-ID').format(n);
 
 /** "19.02" in Bahasa, "19:02" in English. */
@@ -73,27 +73,13 @@ function shortLink(url) {
   return url.length > cut ? `${url.slice(0, cut)}…` : url;
 }
 
-/** A brand-soft (or danger) note with a leading 14px icon. */
-function note(name, text, { danger = false, extra } = {}) {
-  return h(
-    'p',
-    { class: ['note', danger && 'note--danger', extra] },
-    icon(name, { size: 14 }),
-    h('span', { class: 'note__body' }, text),
-  );
-}
-
-function screen(back, ...children) {
-  return h('div', { class: 'screen screen--nobar' }, topBar({ back }), children);
-}
-
-function header(list) {
-  const title = list.title || tc('untitled');
-  return pageHeader({
+/** The screen's h1 and its "Spot WFC Bandung · 5 tempat" meta line (pageHeader props). */
+function heading(list) {
+  return {
     title: t(S, 'title'),
-    meta: `${title} · ${placesLabel(list.places.length)}`,
+    meta: `${list.title || tc('untitled')} · ${placesLabel(list.places.length)}`,
     metaIcon: 'list',
-  });
+  };
 }
 
 // ---- chat preview ----
@@ -154,10 +140,12 @@ function fitNotes(length, lang) {
   const n = formatNumber(length, lang);
   const line = (key) => h('p', { class: 'hint mt-12' }, icon('check', { size: 14 }), h('span', {}, t(S, key, { n })));
 
+  const small = { size: 14, class: 'mt-12' };
+
   if (length <= INSTAGRAM_MAX) return [line('fitsAll')];
-  if (length <= CHATS_MAX) return [line('fitsChat'), note('alert-circle', t(S, 'igNote'), { extra: 'mt-12' })];
+  if (length <= CHATS_MAX) return [line('fitsChat'), note('alert-circle', t(S, 'igNote'), small)];
   // Past LINE and Telegram the danger note replaces the Instagram one; Send (WhatsApp) still works.
-  return [line('fitsWhatsApp'), note('alert-triangle', t(S, 'tooLong'), { danger: true, extra: 'mt-12' })];
+  return [line('fitsWhatsApp'), note('alert-triangle', t(S, 'tooLong'), { ...small, danger: true })];
 }
 
 // ---- copy and share ----
@@ -186,39 +174,26 @@ function copyByHand(text, label) {
   );
 }
 
-/** Copies text; on success marks the list shared and confirms, otherwise offers a manual copy. */
-async function copyAndMark(listId, text, { toastKey, labelKey }) {
-  if (await copyText(text)) {
-    markShared(listId);
-    toast(t(S, toastKey));
-  } else {
-    copyByHand(text, t(S, labelKey));
-  }
-}
-
-// shareText() is called before the first await, so the browser still sees the tap.
-async function shareMessage(listId, message) {
-  const result = await shareText(message);
-  if (result === 'shared') markShared(listId);
-  else if (result === 'unsupported') {
-    await copyAndMark(listId, message, { toastKey: 'toastMessageCopied', labelKey: 'messageLabel' });
-  }
-}
-
 function actions(listId, { url, message, payload }) {
   const send = sendButton({ href: waLink(message), label: tc('send') });
   send.classList.add('mt-24');
   // The link opens WhatsApp in a new tab; recording the share must not stop it.
   send.addEventListener('click', () => markShared(listId));
 
+  // Copied or shared (a copy stands in where there is no share sheet): the list counts as shared.
+  // A failed copy offers to copy by hand instead of an error toast.
+  const markIfDone = (ok) => ok && markShared(listId);
+  const toasts = (text, toastKey, labelKey) => ({
+    done: t(S, toastKey),
+    failed: () => copyByHand(text, t(S, labelKey)),
+  });
+  const copyLink = () => copyWithToast(url, toasts(url, 'toastCopied', 'linkLabel')).then(markIfDone);
+  const share = () => shareOrCopy(message, toasts(message, 'toastMessageCopied', 'messageLabel')).then(markIfDone);
+
   const row = ghostRow([
-    {
-      icon: 'copy',
-      label: tc('copyLink'),
-      onClick: () => copyAndMark(listId, url, { toastKey: 'toastCopied', labelKey: 'linkLabel' }),
-    },
-    { icon: 'share', label: tc('share'), onClick: () => shareMessage(listId, message) },
-    { icon: 'eye', label: tc('previewFriend'), href: `#d=${payload}&from=${listId}` },
+    { icon: 'copy', label: tc('copyLink'), onClick: copyLink },
+    { icon: 'share', label: tc('share'), onClick: share },
+    { icon: 'eye', label: tc('previewFriend'), href: routes.friend(payload, { from: listId }) },
   ]);
   row.classList.add('mt-8');
   row.lastElementChild.classList.add('ghost-row__btn--wide'); // the long "preview as a friend" label
@@ -226,36 +201,32 @@ function actions(listId, { url, message, payload }) {
   return [send, row];
 }
 
-// ---- dead ends ----
-
-function notFound() {
-  const home = h('a', { class: 'btn btn--ghost', attrs: { href: '#/' } }, tc('goHome'));
-  return screen('#/', pageHeader({ title: t(S, 'title') }), emptyState({ icon: 'alert-circle', text: tc('errNotFound'), action: home }));
-}
-
-function emptyList(list) {
-  const back = h('a', { class: 'btn btn--ghost', attrs: { href: `#/list/${list.id}` } }, t(S, 'backToList'));
-  return screen(`#/list/${list.id}`, header(list), emptyState({ icon: 'map-pin', text: t(S, 'emptyText'), action: back }));
-}
-
 // ---- view ----
 
 export async function render(ctx) {
   const list = getList(ctx.params.id);
-  if (!list) return notFound();
-  if (list.places.length < 1) return emptyList(list);
+  if (!list) {
+    const title = t(S, 'title');
+    return deadEnd({ back: routes.home(), title, icon: 'alert-circle', text: tc('errNotFound'), label: tc('goHome') });
+  }
+  const back = routes.list(list.id);
+  if (list.places.length < 1) {
+    return deadEnd({ back, ...heading(list), icon: 'map-pin', text: t(S, 'emptyText'), label: t(S, 'backToList') });
+  }
 
   const lang = getLang();
   const payload = await encodeList(list);
   const url = listUrl(payload);
   const message = listMessage(list, url, lang);
 
-  return screen(
-    `#/list/${list.id}`,
-    header(list),
+  return h(
+    'div',
+    { class: 'screen screen--nobar' },
+    topBar({ back }),
+    pageHeader(heading(list)),
     chatPreview(message, url, lang),
     fitNotes(url.length, lang),
     actions(list.id, { url, message, payload }),
-    note('bookmark', t(S, 'backup'), { extra: 'mt-24' }),
+    note('bookmark', t(S, 'backup'), { size: 14, class: 'mt-24' }),
   );
 }

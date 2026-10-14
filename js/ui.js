@@ -1,4 +1,5 @@
-// DOM helpers shared by every view: h(), icon(), toast(), openSheet(), copyText(), shareText().
+// DOM helpers shared by every view: h(), icon(), toast(), openSheet(), copyText(), shareText(),
+// and the copy/share flows built on them: copyWithToast(), shareOrCopy().
 // No HTML strings with data: text always goes in as text nodes. icon() is the one parser, and it
 // only ever parses the static strings in icons.js.
 import { ICONS } from './icons.js';
@@ -303,5 +304,28 @@ export function shareText(text) {
   return Promise.resolve(pending).then(
     () => 'shared',
     (err) => (err?.name === 'AbortError' ? 'cancelled' : 'unsupported'),
+  );
+}
+
+/**
+ * Copies text and confirms with the toast `done`. When copying fails: `failed` as an alert toast,
+ * or, when `failed` is a function, a call to it instead (e.g. a copy-by-hand sheet).
+ * Resolves true when the text was copied.
+ */
+export async function copyWithToast(text, { done, failed }) {
+  const copied = await copyText(text);
+  if (copied) toast(done);
+  else if (typeof failed === 'function') failed();
+  else toast(failed, { icon: 'alert-circle' });
+  return copied;
+}
+
+/**
+ * The share sheet with `text`; where there is none, copyWithToast(text, messages) instead.
+ * Call it synchronously inside the click. Resolves true when the text was shared or copied.
+ */
+export function shareOrCopy(text, messages) {
+  return shareText(text).then((result) =>
+    result === 'unsupported' ? copyWithToast(text, messages) : result === 'shared',
   );
 }

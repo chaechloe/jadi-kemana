@@ -1,8 +1,9 @@
 // Random pick (#d=…&v=random): "can't decide? I'll pick", dealt as a large ticket.
 import { h, icon } from '../ui.js';
-import { topBar, pageHeader, ticket, sendButton, emptyState } from '../components.js';
+import { topBar, pageHeader, ticket, sendButton, deadEnd, bottomBar, hidden } from '../components.js';
 import { getLang, t, tc } from '../i18n.js';
 import { waLink, randomMessage } from '../links.js';
+import * as routes from '../routes.js';
 
 const S = {
   id: {
@@ -33,15 +34,7 @@ const S = {
 // while every new visit to this screen starts with a fresh random pick.
 const STATE_KEY = 'jkRandomPick';
 
-// ---- navigation and remembered pick ----
-
-/** The friend view's hash for this list, keeping `from` (preview mode) and adding `extra`. */
-function friendHash({ payload, from }, extra = {}) {
-  const query = new URLSearchParams({ d: payload });
-  if (from) query.set('from', from);
-  for (const [key, value] of Object.entries(extra)) query.set(key, String(value));
-  return `#${query}`;
-}
+// ---- remembered pick ----
 
 function recallPick(count) {
   try {
@@ -100,7 +93,7 @@ function addressLine(place) {
     'p',
     { class: 'meta-line meta-line--ground mt-24' },
     icon('map-pin', { size: 14 }),
-    h('span', { class: 'visually-hidden' }, `${t(S, 'address')}: `),
+    hidden(`${t(S, 'address')}: `),
     h('span', { class: 'meta-line__text' }, place.address),
   );
 }
@@ -111,33 +104,22 @@ function sourceLine(list) {
   return count === 1 ? t(S, 'fromOne', { title }) : t(S, 'from', { n: count, title });
 }
 
-function noPlaces(back) {
-  return h(
-    'div',
-    { class: 'screen screen--nobar' },
-    topBar({ back }),
-    pageHeader({ title: t(S, 'title') }),
-    emptyState({
-      icon: 'map-pin',
-      text: t(S, 'empty'),
-      action: h('a', { class: 'btn btn--ghost', attrs: { href: back } }, t(S, 'toList')),
-    }),
-  );
-}
-
 // ---- screen ----
 
 export async function render(ctx) {
   const list = ctx.list;
   const places = list?.places ?? [];
-  const back = friendHash(ctx.params);
-  if (!places.length) return noPlaces(back);
+  const { payload, from } = ctx.params;
+  const back = routes.friend(payload, { from });
+  if (!places.length) {
+    return deadEnd({ back, title: t(S, 'title'), icon: 'map-pin', text: t(S, 'empty'), label: t(S, 'toList') });
+  }
 
   let index = recallPick(places.length) ?? randomIndex(places.length);
   rememberPick(index);
 
   const sendHref = (place) => waLink(randomMessage(place, getLang()));
-  const detailsHref = (i) => friendHash(ctx.params, { i });
+  const detailsHref = (i) => routes.friend(payload, { from, i });
 
   let card = pickTicket(places[index]);
   card.classList.add('ticket--deal'); // not in the document yet: it deals in once inserted
@@ -184,6 +166,6 @@ export async function render(ctx) {
     addressSlot,
     h('div', { class: 'stack stack--8 mt-24' }, another, h('div', { class: 'center-row' }, details)),
     status,
-    h('div', { class: 'bottom-bar' }, send),
+    bottomBar(send),
   );
 }

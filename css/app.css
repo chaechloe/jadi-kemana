@@ -1017,10 +1017,6 @@ button.row:focus-visible {
   background: var(--line);
 }
 
-.divider--flush {
-  margin: 0;
-}
-
 .divider--8 {
   margin: var(--sp-8) 0;
 }
@@ -1541,7 +1537,151 @@ button.row:focus-visible {
   border-radius: var(--r-24);
   background: var(--surface);
   box-shadow: var(--e1);
+  /* clip (not hidden): rounds the corners without becoming a scroll container,
+     so the sticky .placecard__head below can stick to the page. */
   overflow: hidden;
+  overflow: clip;
+}
+
+/* Friend card head: cover + address/hours. It sticks under the top bar while the perks,
+   note and buttons scroll beneath it; its bottom hairline is the divider between the two.
+   Once stuck (.is-stuck, set by the view), the cover shrinks to a compact bar. */
+.placecard__head {
+  position: sticky;
+  top: var(--topbar-h);
+  z-index: 5;
+  background: var(--surface);
+  box-shadow: 0 1px 0 var(--line);
+}
+
+.placecard__meta {
+  padding: var(--sp-16) var(--sp-20);
+}
+
+/* No scroll anchoring on the friend screen: when the stuck head shrinks, the browser would scroll
+   back up to "keep the content still", un-stick the head, grow it again, and loop. */
+.screen--friend,
+.screen--friend * {
+  overflow-anchor: none;
+}
+
+.placecard__head.is-stuck {
+  box-shadow: 0 1px 0 var(--line), 0 8px 16px -12px rgba(62, 44, 32, 0.35);
+}
+
+.placecard__head .cover {
+  transition: height 0.2s ease;
+}
+
+.placecard__head.is-stuck .cover {
+  height: 88px;
+}
+
+.placecard__head.is-stuck .cover__overline {
+  display: none;
+}
+
+/* Compact cover: emoji tile, name and rating on one row. */
+.placecard__head.is-stuck .cover__emoji {
+  top: 50%;
+  width: 44px;
+  height: 44px;
+  font-size: 24px;
+  transform: translateY(-50%);
+}
+
+.placecard__head.is-stuck .cover__text {
+  top: 50%;
+  bottom: auto;
+  left: calc(var(--sp-16) + 44px + var(--sp-12));
+  right: calc(var(--sp-16) + 72px);
+  transform: translateY(-50%);
+}
+
+.placecard__head.is-stuck .cover__name {
+  margin-top: 0;
+  font-size: 20px;
+  line-height: 24px;
+}
+
+.placecard__head.is-stuck .cover > .rating-chip {
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+/* Short screens (small phones, landscape): drop the address line while stuck to save room. */
+@media (max-height: 700px) {
+  .placecard__head.is-stuck .placecard__meta {
+    padding-top: var(--sp-12);
+    padding-bottom: var(--sp-12);
+  }
+}
+
+/* "Scroll for perks & notes" hint above the bottom bar. Purely visual (aria-hidden);
+   the view shows it once, only when the card continues below the screen. */
+.scroll-hint {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--bar-h) + var(--sp-12));
+  z-index: 25;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-8);
+  max-width: calc(100% - 2 * var(--gutter));
+  min-height: 36px;
+  padding: 0 var(--sp-16);
+  border-radius: var(--r-pill);
+  background: var(--night);
+  color: var(--ink-inverse);
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: var(--e2);
+  pointer-events: none;
+  opacity: 0;
+  transform: translate(-50%, 8px);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.scroll-hint.is-visible {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.scroll-hint.is-visible > .icon {
+  animation: hint-nudge 1.2s ease-in-out 3;
+}
+
+@keyframes hint-nudge {
+  50% { transform: translateY(3px); }
+}
+
+/* Desktop (mouse): previous/next buttons beside the dots, since there is no swipe. */
+.dots-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dots-nav > .iconbtn {
+  display: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .dots-nav > .iconbtn {
+    display: inline-flex;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .placecard__head .cover,
+  .scroll-hint {
+    transition: none;
+  }
+  .scroll-hint.is-visible > .icon {
+    animation: none;
+  }
 }
 
 .placecard__body {
@@ -1760,16 +1900,6 @@ button.row:focus-visible {
   font-weight: 600;
   letter-spacing: 0.01em;
   white-space: nowrap;
-}
-
-.badge--brand {
-  background: var(--brand-soft);
-  color: var(--brand-edge);
-}
-
-.badge--danger {
-  background: var(--danger-soft);
-  color: var(--danger);
 }
 
 /* Place ticket: place colour + dots, two notches at 65% height, a perforation across.
@@ -2415,17 +2545,6 @@ button.row:focus-visible {
   background: var(--go-soft);
 }
 
-/* Sender name in that person's place colour. */
-.bubble__name {
-  margin-bottom: 2px;
-  font-family: var(--font-ui);
-  font-size: 12px;
-  line-height: 16px;
-  font-weight: 600;
-  letter-spacing: 0.01em;
-  color: var(--place, var(--brand-hover));
-}
-
 .bubble__text {
   white-space: pre-line;
 }
@@ -2635,19 +2754,8 @@ button.row:focus-visible {
   gap: var(--sp-12);
 }
 
-.stack--4 { gap: var(--sp-4); }
 .stack--8 { gap: var(--sp-8); }
 .stack--16 { gap: var(--sp-16); }
-.stack--20 { gap: var(--sp-20); }
-.stack--24 { gap: var(--sp-24); }
-
-/* Horizontal, wrapping group with an 8 gap. */
-.cluster {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--sp-8);
-}
 
 /* Two ends of one line. */
 .split {
@@ -2678,17 +2786,14 @@ button.row:focus-visible {
   text-overflow: ellipsis;
 }
 
-.clamp-2,
 .clamp-3 {
   display: -webkit-box;
   overflow: hidden;
   -webkit-box-orient: vertical;
 }
 
-.clamp-2 { -webkit-line-clamp: 2; }
 .clamp-3 { -webkit-line-clamp: 3; }
 
-.mt-0 { margin-top: 0; }
 .mt-4 { margin-top: var(--sp-4); }
 .mt-8 { margin-top: var(--sp-8); }
 .mt-12 { margin-top: var(--sp-12); }
@@ -2698,34 +2803,6 @@ button.row:focus-visible {
 .mt-32 { margin-top: var(--sp-32); }
 
 /* Type helpers for one-off text. */
-.text-display {
-  font-family: var(--font-display);
-  font-size: 34px;
-  line-height: 38px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-}
-
-.text-h1 {
-  font-family: var(--font-display);
-  font-size: 24px;
-  line-height: 28px;
-  font-weight: 600;
-}
-
-.text-h2 {
-  font-size: 18px;
-  line-height: 24px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-}
-
-.text-h3 {
-  font-size: 16px;
-  line-height: 22px;
-  font-weight: 600;
-}
-
 .text-body {
   font-size: 15px;
   line-height: 22px;
@@ -2736,13 +2813,6 @@ button.row:focus-visible {
   font-size: 13px;
   line-height: 18px;
   font-weight: 500;
-}
-
-.text-caption {
-  font-size: 12px;
-  line-height: 16px;
-  font-weight: 500;
-  letter-spacing: 0.01em;
 }
 
 /* Secondary text colour (safe on the ground). */
@@ -2816,6 +2886,11 @@ button.row:focus-visible {
     transform: none !important;
   }
 }
+
+/* ==========================================================================
+   Screen-specific rules. Kept last on purpose: they adjust shared components
+   for one screen and win over the rules above by coming later.
+   ========================================================================== */
 
 /* views/share */
 /* "Lihat sebagai teman" is the longest label in the share ghost row: it gets a wider slot (2:2:3). */

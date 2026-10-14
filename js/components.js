@@ -1,6 +1,6 @@
 // Shared visual building blocks. Everything is built with h(); classes come from css/app.css.
 // See docs/ARCHITECTURE.md ("components.js" and "CSS class catalogue").
-import { h, icon } from './ui.js';
+import { h, icon, openSheet } from './ui.js';
 import { getLang, setLang, t, tc, formatHours, formatRating } from './i18n.js';
 import { PERKS, EMOJIS, colorHex } from './data.js';
 import { isSafeMapsUrl } from './links.js';
@@ -32,11 +32,16 @@ const SVG_NS = 'http://www.w3.org/2000/svg';
 
 const placeStyle = (place) => ({ '--place': colorHex(place.color) });
 const emojiOf = (place) => place.emoji || EMOJIS[0];
-const hidden = (text) => h('span', { class: 'visually-hidden' }, text);
 const decorative = { 'aria-hidden': 'true' };
 
+/** Text for screen readers only. */
+export const hidden = (text) => h('span', { class: 'visually-hidden' }, text);
+
+/** '1 tempat' / '5 places'. */
+export const placesLabel = (n) => tc(n === 1 ? 'onePlace' : 'manyPlaces', { n });
+
 /** "Lengkong · Bandung": the last two parts of a "street, area, city" address ('' if it can't tell). */
-export function placeOverline(place) {
+function placeOverline(place) {
   const parts = String(place.address ?? '')
     .split(',')
     .map((part) => part.trim())
@@ -142,6 +147,20 @@ export function pageHeader({ title, meta, metaIcon, action } = {}) {
   );
 }
 
+/**
+ * A screen (no bottom bar) that can only say why it can't go on: the back button, the h1 with an
+ * optional meta line, and an empty state whose ghost link `label` leads to `back` as well.
+ */
+export function deadEnd({ back, title, meta, metaIcon, icon: name, text, label }) {
+  return h(
+    'div',
+    { class: 'screen screen--nobar' },
+    topBar({ back }),
+    pageHeader({ title, meta, metaIcon }),
+    emptyState({ icon: name, text, action: h('a', { class: 'btn btn--ghost', attrs: { href: back } }, label) }),
+  );
+}
+
 // ---- place visuals ----
 
 /** Rounded-square tile in the place colour with its emoji. Sizes: 32, 40, 48, 56. */
@@ -154,7 +173,7 @@ export function placeTile(place, { size = 40 } = {}) {
 }
 
 /** Star + value + (count) on a cover; null without a rating. */
-export function ratingChip(place) {
+function ratingChip(place) {
   const rating = ratingParts(place);
   if (!rating) return null;
   return h(
@@ -322,6 +341,22 @@ export function sendButton({ href, label, size = 'lg' } = {}) {
   return h('a', { class: classes, attrs: { href, target: '_blank', rel: 'noopener' } }, content);
 }
 
+/** The 56px primary button: an <a> with `href`, else a <button>; `attrs` may add e.g. disabled. */
+export function primaryButton({ label, href, onClick, attrs = {} } = {}) {
+  return h(
+    href ? 'a' : 'button',
+    {
+      class: 'btn btn--primary btn--lg btn--block',
+      attrs: { ...(href ? { href } : { type: 'button' }), ...attrs },
+      on: { click: onClick },
+    },
+    h('span', {}, label),
+  );
+}
+
+/** The fixed bar at the bottom of the screen with its main action (and an optional hint). */
+export const bottomBar = (...children) => h('div', { class: 'bottom-bar' }, children);
+
 function ghostItem({ icon: name, label, onClick, href, ariaLabel }) {
   const external = Boolean(href) && !href.startsWith('#');
   const attrs = href
@@ -349,6 +384,49 @@ export function ghostRow(items) {
 /** Centred 32px icon, one short line and an optional action node (usually a ghost button). */
 export function emptyState({ icon: name = 'info-circle', text, action } = {}) {
   return h('div', { class: 'empty' }, icon(name, { size: 32 }), h('p', { class: 'empty__text' }, text), action);
+}
+
+/** A brand-soft note (the danger one with `danger`) with a leading icon; `class` adds e.g. a margin. */
+export function note(name, text, { danger = false, size = 16, class: extra } = {}) {
+  return h(
+    'p',
+    { class: ['note', danger && 'note--danger', extra] },
+    icon(name, { size }),
+    h('span', { class: 'note__body' }, text),
+  );
+}
+
+// ---- deleting, with a confirm step ----
+
+/** The centred "Hapus …" danger link at the end of a screen; `class` sets its top margin. */
+export function deleteRow({ label, onClick, class: extra } = {}) {
+  return h(
+    'div',
+    { class: ['center-row', extra] },
+    h(
+      'button',
+      { class: 'btn btn--danger-link', attrs: { type: 'button' }, on: { click: onClick } },
+      icon('trash', { size: 16 }),
+      h('span', {}, label),
+    ),
+  );
+}
+
+/**
+ * The "delete this?" sheet: `body`, then the danger button `confirm` and Cancel. Cancel starts
+ * focused (the safe choice). Confirming closes the sheet, then calls onConfirm(). Returns close().
+ */
+export function confirmDelete({ title, body, confirm, onConfirm, iconSize = 16 } = {}) {
+  const button = (variant, content, onClick) =>
+    h('button', { class: ['btn', variant, 'btn--block'], attrs: { type: 'button' }, on: { click: onClick } }, content);
+  const ok = button('btn--danger', [icon('trash', { size: iconSize }), h('span', {}, confirm)], () => {
+    close();
+    onConfirm();
+  });
+  const cancel = button('btn--ghost', h('span', {}, tc('cancel')), () => close());
+  const close = openSheet([body, h('div', { class: 'sheet__actions' }, ok, cancel)], { label: title });
+  cancel.focus();
+  return close;
 }
 
 // ---- extras used by several screens ----
