@@ -1,0 +1,18 @@
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editors
+.vscode/
+.idea/
+
+# Dependencies and local secrets (if a helper like the Cloudflare Worker is added later)
+node_modules/
+.env
+.env.*
+!.env.example
+.wrangler/
+
+# Logs
+*.log
