@@ -1,0 +1,144 @@
+/* Jadi Kemana? design tokens. Light mode only.
+   Colour roles: headings are --ink; orange text is --brand-hover; green (--go) is only for
+   send/discuss actions and the outgoing chat bubble. See docs/ARCHITECTURE.md. */
+
+/* ---- Self-hosted fonts (SIL Open Font License, see LICENSES/) ---- */
+
+@font-face {
+  font-family: 'Fredoka';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('../assets/fonts/fredoka-latin-500-normal.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Fredoka';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('../assets/fonts/fredoka-latin-600-normal.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../assets/fonts/plus-jakarta-sans-latin-400-normal.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('../assets/fonts/plus-jakarta-sans-latin-500-normal.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('../assets/fonts/plus-jakarta-sans-latin-600-normal.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('../assets/fonts/plus-jakarta-sans-latin-700-normal.woff2') format('woff2');
+}
+
+/* ---- Colour ---- */
+
+:root{
+  /* grounds & surfaces */
+  --ground:#F3EAD8;      /* page */
+  --surface:#FFFCF6;     /* cards, list surfaces, sticky bars */
+  --raised:#FFFFFF;      /* bottom sheets, dialogs, menus */
+  --fill:#F6EEDF;        /* inputs, chips, tiles ON a surface */
+  --fill-strong:#E9DBBF; /* secondary buttons + segmented track ON ground */
+  --fill-hover:#E2D1B1;
+  --chat-wall:#EFE6D6;   /* Messages + Share chat preview only */
+  /* lines */
+  --line:#EBE1CF;        /* 1px hairline dividers (decorative) */
+  --line-dash:#D9C9AC;   /* dashed placeholders, input inset ring */
+  --line-strong:#9C8262; /* only where a 3:1 boundary is required: colour-swatch ring, checkbox */
+  /* ink */
+  --ink:#3E2C20;         /* 12.9:1 on surface, 11.1:1 on ground */
+  --ink-2:#6E5240;       /* secondary text, 5.97:1 on ground */
+  --ink-3:#806650;       /* placeholder + meta icons. Text only on surface/fill (≥4.6); NEVER as text on ground */
+  --ink-inverse:#FFFCF6;
+  --night:#2B1F17;       /* toast */
+  /* brand (orange) */
+  --brand:#C0530B;       /* fills behind white text (4.68:1) */
+  --brand-hover:#A84A0A; /* hover fill; ALSO the colour for orange text/links (4.82 on ground, 5.62 on surface) */
+  --brand-edge:#8F3D08;  /* key edge under primary; text on brand-soft (6.15) */
+  --brand-soft:#FBE7D2;
+  /* send to group (green): ONLY for send/discuss actions */
+  --go:#45752A;          /* white text 5.48:1 */
+  --go-hover:#3A6423;
+  --go-edge:#2F5419;
+  --go-soft:#E7F2DC;     /* outgoing chat bubble; text on it --ink */
+  /* semantic */
+  --danger:#B42318;      /* 6.42 on surface */
+  --danger-soft:#FBE4E1; /* danger text on it 5.41 */
+  --star:#B7791F;        /* rating star glyph only (3.56 as a graphic), never text */
+  --focus:#A84A0A;
+  --scrim:rgba(43,31,23,.40);
+}
+
+/* ---- Type, spacing, radius, elevation, layout ---- */
+
+:root {
+  /* families */
+  --font-ui: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display: 'Fredoka', 'Plus Jakarta Sans', system-ui, sans-serif; /* 18px and up only */
+  --font-chat: -apple-system, 'Segoe UI', system-ui, sans-serif;
+
+  /* spacing scale: 4 / 8 / 12 / 16 / 20 / 24 / 32 / 40 / 48 */
+  --sp-4: 4px;
+  --sp-8: 8px;
+  --sp-12: 12px;
+  --sp-16: 16px;
+  --sp-20: 20px;
+  --sp-24: 24px;
+  --sp-32: 32px;
+  --sp-40: 40px;
+  --sp-48: 48px;
+
+  /* radius scale (nesting rule: inner = outer - padding, minimum 8) */
+  --r-6: 6px;
+  --r-8: 8px;
+  --r-12: 12px;
+  --r-16: 16px;
+  --r-18: 18px;
+  --r-24: 24px;
+  --r-pill: 999px;
+
+  /* elevation: a shadow is the only edge of an elevated element */
+  --e1: 0 0 0 1px rgba(62,44,32,.05), 0 1px 2px rgba(62,44,32,.06), 0 6px 16px -6px rgba(62,44,32,.14);
+  --e2: 0 0 0 1px rgba(62,44,32,.06), 0 12px 28px -8px rgba(62,44,32,.22);
+  --e3: 0 -8px 40px -8px rgba(62,44,32,.28);
+  --key-brand: 0 3px 0 var(--brand-edge);
+  --key-go: 0 3px 0 var(--go-edge);
+
+  /* rings */
+  --ring-focus: inset 0 0 0 1.5px var(--brand-hover), 0 0 0 3px rgba(192,83,11,.20);
+  --ring-error: inset 0 0 0 1.5px var(--danger), 0 0 0 3px rgba(180,35,24,.15);
+  --ring-selected: inset 0 0 0 1.5px var(--brand);
+
+  /* the one background pattern: white dots on a place colour or the brand band */
+  --dots: radial-gradient(rgba(255,255,255,.12) 1.5px, transparent 1.6px);
+  --dots-size: 16px 16px;
+
+  /* layout */
+  --gutter: 20px;
+  --column: 480px;
+  --topbar-h: 56px;
+  --safe-bottom: max(24px, env(safe-area-inset-bottom, 0px));
+  --bar-h: calc(12px + 56px + var(--safe-bottom)); /* sticky bottom bar with a 56 button */
+}

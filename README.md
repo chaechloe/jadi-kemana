@@ -5,7 +5,7 @@
 🇮🇩 [Baca dalam Bahasa Indonesia](README.id.md)
 
 > [!NOTE]
-> **Work in progress.** The idea, research and mockups are done, and the first working version is being built now. There's nothing to install yet. Click **Star** or **Watch** to follow along.
+> **Work in progress.** The first version is built and being tested, but it isn't online yet. You can already [run it locally](#run-it-locally). Click **Star** or **Watch** to follow along.
 
 ## Why
 
@@ -50,10 +50,25 @@ So the app fills in what it legitimately can: the name from your link, and an ap
 
 Fork this repo and turn on **GitHub Pages**. You'll get your own copy at `https://<your-username>.github.io/jadi-kemana/`, with no server to run. GitHub Pages is free as long as your fork stays public. Setup steps will go here once the first version is out.
 
-## Built with (planned)
+## Run it locally
 
-- Plain HTML, CSS and JavaScript: no framework, no build step
+There's nothing to install or build. You only need [Node.js](https://nodejs.org/) 22 or newer for the small dev server and the tests.
+
+```bash
+git clone https://github.com/chaechloe/jadi-kemana.git
+cd jadi-kemana
+node tools/serve.mjs
+```
+
+Then open http://localhost:8080. To run the tests: `node --test "tests/*.test.mjs"`.
+
+How the code is organised is described in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
+## Built with
+
+- Plain HTML, CSS and JavaScript: no framework, no build step, no dependencies
 - Hosted on GitHub Pages
+- Self-hosted fonts, so loading the app doesn't contact any font service
 - [Tabler Icons](https://tabler.io/icons) (MIT)
 - [Fredoka](https://fonts.google.com/specimen/Fredoka) and [Plus Jakarta Sans](https://fonts.google.com/specimen/Plus+Jakarta+Sans) (SIL Open Font License)
 - Address suggestions from [OpenStreetMap](https://www.openstreetmap.org/copyright) data via Nominatim, © OpenStreetMap contributors (ODbL)

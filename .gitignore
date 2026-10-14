@@ -16,3 +16,6 @@ node_modules/
 
 # Logs
 *.log
+
+# Local Claude Code / editor launch config (machine-specific paths)
+.claude/
