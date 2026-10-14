@@ -1,9 +1,13 @@
 // Friend view (#d=<payload>): what the group sees after opening a shared link.
-// One place card at a time with a peek of the next one, pager dots, swipe and arrow keys.
+// One place card at a time with a peek of the next one, pager dots, swipe and arrow keys
+// (plus ‹ › buttons with a mouse). The card's head (cover, address, hours) sticks under the top bar
+// while the rest scrolls, and a one-time hint says there's more below. On a wide screen the places
+// are listed beside the card instead (list + card), with the actions under the list.
 // The current card lives in the hash as '&i=' (replaceState), so a reload or Back returns to it.
-import { h, icon, toast, copyText, shareText } from '../ui.js';
+import { h, icon, toast, copyWithToast, shareOrCopy } from '../ui.js';
 import {
   topBar,
+  iconButton,
   cover,
   placeMetaLines,
   facilitiesList,
@@ -11,17 +15,25 @@ import {
   sendButton,
   ghostRow,
   emptyState,
+  bottomBar,
+  placesLabel,
+  listRow,
+  placeTile,
 } from '../components.js';
-import { getLang, t, tc } from '../i18n.js';
+import { getLang, t, tc, formatRating } from '../i18n.js';
 import { colorHex, newId, SAMPLE_ID } from '../data.js';
 import { getList, importList, storageOk } from '../store.js';
 import { waLink, placeMessage, isSafeMapsUrl } from '../links.js';
+import * as routes from '../routes.js';
 
 const S = {
   id: {
     cards: 'Kartu tempat',
+    places: 'Daftar tempat',
     card: '{name}, {i} dari {n}',
     next: 'Tempat berikutnya',
+    previous: 'Tempat sebelumnya',
+    scrollHint: 'Scroll ke bawah buat lihat fasilitas & catatan',
     dots: 'Pilih tempat',
     dot: 'Tempat {i}: {name}',
     random: 'Terserah!',
@@ -40,8 +52,11 @@ const S = {
   },
   en: {
     cards: 'Place cards',
+    places: 'Places',
     card: '{name}, {i} of {n}',
     next: 'Next place',
+    previous: 'Previous place',
+    scrollHint: 'Scroll down for perks & notes',
     dots: 'Choose a place',
     dot: 'Place {i}: {name}',
     random: 'Surprise me',
@@ -62,57 +77,33 @@ const S = {
 
 const SWIPE_PX = 40;
 const ARROW_STEPS = { ArrowLeft: -1, ArrowRight: 1 };
+const COMPACT_SHRINK = 88; // px the cover loses when the head is stuck (176 → 88, see .placecard__head)
+const HINT_KEY = 'jk.hint.scroll';
+const HINT_DELAY_MS = 700;
+const HINT_SHOW_MS = 6000;
 
-// ---- hashes ----
-
-/** '#d=<payload>', then `from` (preview mode) and any `extra` params. 'd=' stays first for the router. */
-function friendHash({ payload, from }, extra = {}) {
-  const query = new URLSearchParams({ d: payload });
-  if (from) query.set('from', from);
-  for (const [key, value] of Object.entries(extra)) {
-    if (value != null && value !== '') query.set(key, String(value));
-  }
-  return `#${query}`;
-}
-
-const listHash = (id) => `#/list/${encodeURIComponent(id)}`;
+// ---- card index in the hash ----
 
 /** The card index saved in the hash ('&i='), or 0 when missing or out of range. */
-function savedIndex(total) {
-  const n = Number(new URLSearchParams(location.hash.slice(1)).get('i'));
+function savedIndex(params, total) {
+  const n = Number(params.i);
   return Number.isInteger(n) && n >= 0 && n < total ? n : 0;
 }
 
 /** Keeps the current card in this history entry without a hashchange (so no re-render). */
-function rememberIndex(params, index) {
+function rememberIndex({ payload, from }, index) {
   try {
-    history.replaceState(history.state, '', friendHash(params, { i: index || null }));
+    history.replaceState(history.state, '', routes.friend(payload, { from, i: index || null }));
   } catch {
     // History is locked down in some embedded browsers; the card still changes.
   }
-}
-
-// ---- copy and share ----
-
-async function copyMessage(text) {
-  const copied = await copyText(text);
-  if (copied) toast(t(S, 'toastCopied'));
-  else toast(t(S, 'toastCopyFailed'), { icon: 'alert-circle' });
-}
-
-function shareMessage(text) {
-  // shareText() has to start synchronously inside the click; without a share sheet, copy instead.
-  shareText(text).then((result) => {
-    if (result === 'unsupported') copyMessage(text);
-  });
 }
 
 // ---- pieces ----
 
 /** List name (the screen h1, styled for the bar) and "dari Rani · 5 tempat". */
 function listHeading(list) {
-  const n = list.places.length;
-  const count = tc(n === 1 ? 'onePlace' : 'manyPlaces', { n });
+  const count = placesLabel(list.places.length);
   const caption = list.from ? `${tc('fromName', { name: list.from })} · ${count}` : count;
   return h(
     'div',
@@ -132,7 +123,7 @@ function previewNote(listId) {
       'p',
       { class: 'note__body split' },
       h('span', {}, t(S, 'preview')),
-      h('a', { class: 'link link--hit', attrs: { href: listHash(listId) } }, t(S, 'backToEdit')),
+      h('a', { class: 'link link--hit', attrs: { href: routes.list(listId) } }, t(S, 'backToEdit')),
     ),
   );
 }
@@ -142,6 +133,7 @@ function placeCard(place, { index, total, from }) {
   const meta = placeMetaLines(place);
   const facilities = facilitiesList(place);
   const maps = isSafeMapsUrl(place.maps) ? place.maps : '';
+  const toasts = { done: t(S, 'toastCopied'), failed: t(S, 'toastCopyFailed') };
 
   return h(
     'article',
@@ -149,22 +141,23 @@ function placeCard(place, { index, total, from }) {
       class: 'placecard',
       attrs: { tabindex: '-1', 'aria-label': t(S, 'card', { name: place.name, i: index + 1, n: total }) },
     },
-    cover(place),
+    h('div', { class: 'placecard__sentinel', attrs: { 'aria-hidden': 'true' } }),
+    h('div', { class: 'placecard__head' }, cover(place), meta && h('div', { class: 'placecard__meta' }, meta)),
     h(
       'div',
       { class: 'placecard__body' },
-      meta,
-      facilities && [
-        meta && h('hr', { class: 'divider' }),
-        h('h3', { class: 'placecard__heading' }, tc('perksTitle')),
-        facilities,
-      ],
+      facilities && [h('h3', { class: 'placecard__heading' }, tc('perksTitle')), facilities],
       noteBlock(place, from),
       sendButton({ href: waLink(message), label: tc('discuss'), size: 'md' }),
       ghostRow([
         maps && { icon: 'map-pin', label: tc('mapsShort'), ariaLabel: tc('openMaps'), href: maps },
-        { icon: 'copy', label: tc('copyShort'), ariaLabel: tc('copyText'), onClick: () => copyMessage(message) },
-        { icon: 'share', label: tc('share'), onClick: () => shareMessage(message) },
+        {
+          icon: 'copy',
+          label: tc('copyShort'),
+          ariaLabel: tc('copyText'),
+          onClick: () => copyWithToast(message, toasts),
+        },
+        { icon: 'share', label: tc('share'), onClick: () => shareOrCopy(message, toasts) },
       ]),
     ),
   );
@@ -210,11 +203,101 @@ function revealCard(carousel) {
   if (top < 0) window.scrollBy({ top, behavior: reducedMotion() ? 'auto' : 'smooth' });
 }
 
+// ---- sticky head ----
+
+let stickWatch = null; // the IntersectionObserver of the card on screen
+
+/**
+ * Marks the card's head .is-stuck (compact cover) once it sticks under the top bar. Compacting
+ * shortens the page, so it only happens when there's enough scroll room left to stay stuck;
+ * otherwise a short card would bounce between the two sizes.
+ */
+function watchStick(card) {
+  stickWatch?.disconnect();
+  stickWatch = null;
+  const sentinel = card.querySelector('.placecard__sentinel');
+  const head = card.querySelector('.placecard__head');
+  if (!sentinel || !head || !('IntersectionObserver' in window)) return;
+
+  const bar = document.querySelector('.topbar')?.getBoundingClientRect().height ?? 56;
+  stickWatch = new IntersectionObserver(
+    ([entry]) => {
+      const passed = !entry.isIntersecting && entry.boundingClientRect.top < bar;
+      if (!passed) {
+        head.classList.remove('is-stuck');
+        return;
+      }
+      // Wide screens have room for the full cover: it stays sticky but doesn't shrink.
+      if (head.classList.contains('is-stuck') || matchMedia('(min-width: 960px)').matches) return;
+      const page = document.documentElement;
+      const room = page.scrollHeight - COMPACT_SHRINK - innerHeight - (scrollY + entry.boundingClientRect.top - bar);
+      if (room > 24) head.classList.add('is-stuck');
+    },
+    { rootMargin: `-${bar}px 0px 0px 0px`, threshold: 0 },
+  );
+  stickWatch.observe(sentinel);
+}
+
+// ---- "scroll for more" hint ----
+
+let hintShown = false; // per page load, for browsers without sessionStorage
+
+function hintSeen() {
+  try {
+    return hintShown || sessionStorage.getItem(HINT_KEY) === '1';
+  } catch {
+    return hintShown;
+  }
+}
+
+function markHintSeen() {
+  hintShown = true;
+  try {
+    sessionStorage.setItem(HINT_KEY, '1');
+  } catch {
+    // Not remembering is fine: it shows once per page load instead.
+  }
+}
+
+/**
+ * Once per visit, when the card's actions are below the screen and the page hasn't been scrolled,
+ * a small pill says there's more below. It fades on the first scroll or after a few seconds.
+ * Purely visual (aria-hidden): screen readers reach the content anyway.
+ */
+function scrollHint(card) {
+  const hint = h(
+    'div',
+    { class: 'scroll-hint', attrs: { 'aria-hidden': 'true' } },
+    icon('arrow-down', { size: 16 }),
+    h('span', {}, t(S, 'scrollHint')),
+  );
+  if (hintSeen()) return hint;
+
+  const hide = () => {
+    hint.classList.remove('is-visible');
+    removeEventListener('scroll', onScroll);
+  };
+  const onScroll = () => {
+    if (scrollY > 24) hide();
+  };
+  setTimeout(() => {
+    if (!hint.isConnected || hintSeen() || scrollY > 24) return;
+    const actions = card.isConnected ? card.querySelector('.ghost-row') : null;
+    const bar = document.querySelector('.bottom-bar')?.getBoundingClientRect().height ?? 0;
+    if (!actions || actions.getBoundingClientRect().bottom <= innerHeight - bar) return; // all visible
+    markHintSeen();
+    hint.classList.add('is-visible');
+    addEventListener('scroll', onScroll, { passive: true });
+    setTimeout(hide, HINT_SHOW_MS);
+  }, HINT_DELAY_MS);
+  return hint;
+}
+
 /** The card carousel, its dots and a polite status line. Returns the nodes to place in the screen. */
 function placeBrowser(list, params) {
   const { places, from } = list;
   const total = places.length;
-  let index = savedIndex(total);
+  let index = savedIndex(params, total);
   let card = placeCard(places[index], { index, total, from });
 
   const peekCard = () =>
@@ -237,6 +320,21 @@ function placeBrowser(list, params) {
   );
   const status = h('p', { class: 'visually-hidden', attrs: { role: 'status' } });
 
+  // Wide screens: every place as a row beside the card (CSS hides it on phones).
+  const rowMeta = (place) => {
+    const rating = formatRating(place.rating, '', getLang());
+    return [rating && `★ ${rating}`, place.address].filter(Boolean).join(' · ');
+  };
+  const picks = places.map((place, i) =>
+    listRow({ tile: placeTile(place), title: place.name, meta: rowMeta(place), current: i === index, onClick: () => go(i) }),
+  );
+  const pickButtons = picks.map((row) => row.querySelector('.row__main'));
+  const placeList = h(
+    'nav',
+    { class: 'place-picks', attrs: { 'aria-label': t(S, 'places') } },
+    h('ul', { class: 'list-surface', attrs: { role: 'list' } }, picks),
+  );
+
   function go(next) {
     const focusWasInCard = card.contains(document.activeElement);
     index = ((next % total) + total) % total;
@@ -244,8 +342,13 @@ function placeBrowser(list, params) {
     const fresh = placeCard(places[index], { index, total, from });
     card.replaceWith(fresh);
     card = fresh;
+    watchStick(card);
     if (peek) peek.replaceChildren(peekCard());
     dots.forEach((dot, i) => dot.setAttribute('aria-current', String(i === index)));
+    pickButtons.forEach((button, i) => {
+      if (i === index) button.setAttribute('aria-current', 'true');
+      else button.removeAttribute('aria-current');
+    });
 
     rememberIndex(params, index);
     revealCard(carousel);
@@ -264,11 +367,21 @@ function placeBrowser(list, params) {
     });
   }
 
-  return [
-    carousel,
-    total > 1 && h('div', { class: 'dots', attrs: { role: 'group', 'aria-label': t(S, 'dots') } }, dots),
-    status,
-  ];
+  // The head can only be watched once the card is in the page.
+  requestAnimationFrame(() => card.isConnected && watchStick(card));
+
+  // With a mouse there's no swipe: ‹ › buttons sit beside the dots (CSS shows them for fine pointers).
+  const nav =
+    total > 1 &&
+    h(
+      'div',
+      { class: 'dots-nav' },
+      iconButton({ icon: 'chevron-left', label: t(S, 'previous'), onClick: () => go(index - 1) }),
+      h('div', { class: 'dots', attrs: { role: 'group', 'aria-label': t(S, 'dots') } }, dots),
+      iconButton({ icon: 'chevron-right', label: t(S, 'next'), onClick: () => go(index + 1) }),
+    );
+
+  return { main: [carousel, nav, status, scrollHint(card)], list: placeList };
 }
 
 /** "Simpan ke HP ini" for a list this phone doesn't have yet; afterwards (or if it has it) a link to open it. */
@@ -276,7 +389,7 @@ function saveArea(list) {
   const area = h('div', { class: 'center-row mt-8' });
 
   const showOpen = (id) => {
-    const open = h('a', { class: 'link link--hit', attrs: { href: listHash(id) } }, t(S, 'open'));
+    const open = h('a', { class: 'link link--hit', attrs: { href: routes.list(id) } }, t(S, 'open'));
     area.replaceChildren(
       h('p', { class: 'hint hint--center' }, icon('check', { size: 14 }), h('span', {}, t(S, 'onPhone')), open),
     );
@@ -316,7 +429,7 @@ function emptyView(ownList) {
     ownList &&
     h(
       'a',
-      { class: 'btn btn--ghost', attrs: { href: `${listHash(ownList.id)}/place/new` } },
+      { class: 'btn btn--ghost', attrs: { href: routes.place(ownList.id, 'new') } },
       icon('plus', { size: 16 }),
       h('span', {}, tc('addPlace')),
     );
@@ -332,17 +445,16 @@ function credit() {
   );
 }
 
-function bottomBar(params, total) {
+/** "Terserah!" and "Bandingin" (from 2 places), side by side. */
+function friendBar({ payload, from }, total) {
   const action = (v, name, key) =>
     h(
       'a',
-      { class: 'btn btn--secondary', attrs: { href: friendHash(params, { v }) } },
+      { class: 'btn btn--secondary', attrs: { href: routes.friend(payload, { from, v }) } },
       icon(name, { size: 16 }),
       h('span', {}, t(S, key)),
     );
-  return h(
-    'div',
-    { class: 'bottom-bar' },
+  return bottomBar(
     h(
       'div',
       { class: 'bottom-bar__row' },
@@ -359,14 +471,31 @@ export async function render(ctx) {
   const ownList = params.from ? getList(params.from) : null;
   const total = list.places.length;
 
+  if (!total) {
+    return h(
+      'div',
+      { class: 'screen screen--friend screen--nobar' },
+      topBar({ start: listHeading(list) }),
+      ownList && previewNote(ownList.id),
+      emptyView(ownList),
+      credit(),
+    );
+  }
+
+  // Phones: one column in this order. Wide screens: the aside (list + actions) sits left of the card.
+  const browser = placeBrowser(list, params);
   return h(
     'div',
-    { class: ['screen', !total && 'screen--nobar'] },
+    { class: 'screen screen--friend layout layout--aside-start' },
     topBar({ start: listHeading(list) }),
-    ownList && previewNote(ownList.id),
-    total ? placeBrowser(list, params) : emptyView(ownList),
-    total > 0 && !ownList && storageOk() && saveArea(list),
-    credit(),
-    total > 0 && bottomBar(params, total),
+    h('div', { class: 'l-main' }, ownList && previewNote(ownList.id), browser.main),
+    h(
+      'div',
+      { class: 'l-aside' },
+      browser.list,
+      friendBar(params, total),
+      !ownList && storageOk() && saveArea(list),
+      credit(),
+    ),
   );
 }

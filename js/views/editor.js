@@ -2,10 +2,26 @@
 // open or reorder places, add one (straight from a pasted Maps link while the list is empty),
 // then continue to sharing. An unknown id gets a friendly dead end with a way home.
 import { h, icon, toast, openSheet, uid } from '../ui.js';
-import { topBar, pageHeader, placeTile, listRow, iconButton, emptyState } from '../components.js';
+import {
+  topBar,
+  pageHeader,
+  placeTile,
+  listRow,
+  iconButton,
+  hidden,
+  placesLabel,
+  note,
+  deadEnd,
+  bottomBar,
+  primaryButton,
+  deleteRow,
+  confirmDelete,
+} from '../components.js';
 import { t, tc, formatRating } from '../i18n.js';
 import { LIMITS } from '../data.js';
 import * as store from '../store.js';
+import * as routes from '../routes.js';
+import { oneLine } from '../autofill.js';
 import { openListsSheet } from './lists-sheet.js';
 
 const PREFILL_KEY = 'jk.prefill'; // the place form reads this once and clears it
@@ -88,11 +104,8 @@ const S = {
 
 // ---- small helpers ----
 
-const hidden = (text) => h('span', { class: 'visually-hidden' }, text);
 const listTitle = (list) => list.title || tc('untitled');
-const placeCount = (n) => tc(n === 1 ? 'onePlace' : 'manyPlaces', { n });
 const fromText = (list) => (list.from ? t(S, 'from', { name: list.from }) : t(S, 'fromEmpty'));
-const listHash = (list, rest = '') => `#/list/${list.id}${rest}`;
 
 // Changed since shared, and only worth saying while there is something to share.
 const showChanged = (list) =>
@@ -192,7 +205,7 @@ function header(state, ctx, saveField, canSave) {
       }),
   });
 
-  const meta = canSave ? `${placeCount(list.places.length)} · ${tc('savedHere')}` : placeCount(list.places.length);
+  const meta = canSave ? `${placesLabel(list.places.length)} · ${tc('savedHere')}` : placesLabel(list.places.length);
   const node = pageHeader({ title: switchButton, meta, metaIcon: 'device-mobile', action: renameButton });
   const titleRow = node.querySelector('.page-header__row');
 
@@ -231,21 +244,9 @@ function header(state, ctx, saveField, canSave) {
 // ---- notes above the list ----
 
 function changedNote(list) {
-  return h(
-    'p',
-    { class: 'note', attrs: { hidden: !showChanged(list) } },
-    icon('refresh', { size: 18 }),
-    h('span', { class: 'note__body' }, t(S, 'changed')),
-  );
-}
-
-function storageNote() {
-  return h(
-    'p',
-    { class: 'note note--danger' },
-    icon('alert-triangle', { size: 18 }),
-    h('span', { class: 'note__body' }, tc('errStorage')),
-  );
+  const node = note('refresh', t(S, 'changed'), { size: 18 });
+  node.hidden = !showChanged(list);
+  return node;
 }
 
 // ---- place rows ----
@@ -342,7 +343,7 @@ function placeRow(ctx, list, place, index) {
     tile: placeTile(place),
     title: [hidden(`${t(S, 'edit')} `), place.name],
     meta: placeMeta(place),
-    href: listHash(list, `/place/${place.id}`),
+    href: routes.place(list.id, place.id),
     trail: list.places.length > 1 ? moveButton(ctx, list, index) : null,
   });
 }
@@ -370,7 +371,7 @@ function addRow(list) {
     {},
     h(
       'a',
-      { class: 'row row--add', attrs: { href: listHash(list, '/place/new') }, on: { click: () => setPrefill('') } },
+      { class: 'row row--add', attrs: { href: routes.place(list.id, 'new') }, on: { click: () => setPrefill('') } },
       tile(),
       h('span', {}, tc('addPlace')),
     ),
@@ -388,15 +389,11 @@ function placeList(ctx, list) {
 
 // ---- empty list: paste a Maps link ----
 
-// The link field's draft. A language switch rebuilds the editor while the old one is still
-// mounted; the new field picks the draft up, so a pasted link (and its line breaks) isn't lost.
-// Any other arrival (another list, coming back from the form) starts empty.
-let linkDraft = null; // { listId, input, draft: { inputId, value, pasted } }
-
+// The link field's draft lives in ctx.state ({ link, pasted }), so a language switch keeps a pasted
+// link (and its line breaks); any other arrival (another list, back from the form) starts empty.
 function emptyAdd(ctx, list) {
-  const resume = linkDraft?.listId === list.id && linkDraft.input.isConnected;
-  const draft = resume ? linkDraft.draft : { inputId: uid('maps-link'), value: '', pasted: null };
-  const inputId = draft.inputId; // kept, so main.js can put focus back on the field
+  const draft = ctx.state;
+  const inputId = 'jk-maps-link'; // stable, so main.js can put focus back on the field
   const input = h('input', {
     class: 'input',
     id: inputId,
@@ -411,12 +408,11 @@ function emptyAdd(ctx, list) {
     },
     on: {
       input: () => {
-        draft.value = input.value;
+        draft.link = input.value;
       },
     },
   });
-  input.value = draft.value;
-  linkDraft = { listId: list.id, input, draft };
+  input.value = draft.link ?? '';
 
   // Maps share text is "name / address / link" on separate lines. The one-line field shows it
   // with spaces, but the form gets the original lines so it can still read the name and address.
@@ -424,10 +420,10 @@ function emptyAdd(ctx, list) {
     const text = event.clipboardData?.getData('text/plain') ?? '';
     if (!/[\r\n]/.test(text)) return;
     event.preventDefault();
-    const shown = text.replace(/\s*[\r\n]+\s*/g, ' ').trim();
+    const shown = oneLine(text);
     input.setRangeText(shown, input.selectionStart ?? 0, input.selectionEnd ?? 0, 'end');
     draft.pasted = { raw: text.trim(), shown };
-    draft.value = input.value; // setRangeText fires no input event
+    draft.link = input.value; // setRangeText fires no input event
   });
 
   // An empty field still opens the form, for adding a place by hand.
@@ -436,8 +432,7 @@ function emptyAdd(ctx, list) {
     const typed = input.value.trim();
     const { pasted } = draft;
     setPrefill(pasted && typed === pasted.shown ? pasted.raw : typed);
-    linkDraft = null; // handed to the form; coming back starts empty
-    ctx.nav(listHash(list, '/place/new'));
+    ctx.nav(routes.place(list.id, 'new'));
   };
 
   return h(
@@ -471,117 +466,84 @@ function emptyAdd(ctx, list) {
 
 // ---- delete, with a confirm step ----
 
-function openDeleteSheet(ctx, state) {
-  const cancel = h('button', { class: 'btn btn--ghost btn--block', attrs: { type: 'button' } }, h('span', {}, tc('cancel')));
-  const confirm = h(
-    'button',
-    { class: 'btn btn--danger btn--block', attrs: { type: 'button' } },
-    icon('trash', { size: 18 }),
-    h('span', {}, t(S, 'deleteConfirm')),
-  );
-
-  const close = openSheet(
-    [
-      h('p', { class: 'text-body' }, t(S, 'deleteBody')),
-      state.list.sharedAt !== null &&
-        h('p', { class: 'hint mt-8' }, icon('link', { size: 14 }), h('span', {}, t(S, 'deleteShared'))),
-      h('div', { class: 'sheet__actions' }, confirm, cancel),
-    ],
-    { label: t(S, 'deleteTitle') },
-  );
-
-  cancel.addEventListener('click', close);
-  confirm.addEventListener('click', () => {
-    store.deleteList(state.list.id);
-    close();
-    toast(t(S, 'deleted'));
-    ctx.nav('#/');
-  });
-  cancel.focus(); // the safe choice starts focused
-}
-
-function deleteRow(ctx, state) {
-  return h(
-    'div',
-    { class: 'center-row mt-32' },
-    h(
-      'button',
-      { class: 'btn btn--danger-link', attrs: { type: 'button' }, on: { click: () => openDeleteSheet(ctx, state) } },
-      icon('trash', { size: 16 }),
-      h('span', {}, t(S, 'deleteList')),
-    ),
-  );
+function deleteButton(ctx, state) {
+  const ask = () =>
+    confirmDelete({
+      title: t(S, 'deleteTitle'),
+      body: [
+        h('p', { class: 'text-body' }, t(S, 'deleteBody')),
+        state.list.sharedAt !== null &&
+          h('p', { class: 'hint mt-8' }, icon('link', { size: 14 }), h('span', {}, t(S, 'deleteShared'))),
+      ],
+      confirm: t(S, 'deleteConfirm'),
+      iconSize: 18,
+      onConfirm: () => {
+        store.deleteList(state.list.id);
+        toast(t(S, 'deleted'));
+        ctx.nav(routes.home());
+      },
+    });
+  return deleteRow({ label: t(S, 'deleteList'), onClick: ask, class: 'mt-32' });
 }
 
 // ---- sticky bottom bar ----
 
-function bottomBar(list) {
-  const classes = 'btn btn--primary btn--lg btn--block';
-  const label = h('span', {}, tc('continueShare'));
-  if (list.places.length >= MIN_TO_SHARE) {
-    return h('div', { class: 'bottom-bar' }, h('a', { class: classes, attrs: { href: listHash(list, '/share') } }, label));
-  }
+function shareBar(list) {
+  const label = tc('continueShare');
+  if (list.places.length >= MIN_TO_SHARE) return bottomBar(primaryButton({ label, href: routes.share(list.id) }));
   const helpId = uid('share-help');
-  return h(
-    'div',
-    { class: 'bottom-bar' },
-    h('button', { class: classes, attrs: { type: 'button', disabled: true, 'aria-describedby': helpId } }, label),
+  return bottomBar(
+    primaryButton({ label, attrs: { disabled: true, 'aria-describedby': helpId } }),
     h('p', { class: 'hint hint--center mt-8', id: helpId }, icon('info-circle', { size: 14 }), h('span', {}, t(S, 'ctaHelper'))),
   );
 }
 
-// ---- screens ----
-
-function notFoundScreen() {
-  const home = h(
-    'a',
-    { class: 'btn btn--ghost', attrs: { href: '#/' } },
-    icon('home', { size: 18 }),
-    h('span', {}, tc('goHome')),
-  );
-  return h(
-    'div',
-    { class: 'screen screen--nobar' },
-    topBar({ back: '#/', backLabel: tc('back') }),
-    pageHeader({ title: t(S, 'notFoundTitle') }),
-    emptyState({ icon: 'alert-circle', text: `${tc('errNotFound')} ${t(S, 'notFoundHint')}`, action: home }),
-  );
-}
+// ---- screen ----
 
 export async function render(ctx) {
-  // Another list (or none) drops the last list's unsent link.
-  if (linkDraft && linkDraft.listId !== ctx.params.id) linkDraft = null;
   const list = store.getList(ctx.params.id);
-  if (!list) return notFoundScreen();
+  if (!list) {
+    return deadEnd({
+      back: routes.home(),
+      title: t(S, 'notFoundTitle'),
+      icon: 'alert-circle',
+      text: `${tc('errNotFound')} ${t(S, 'notFoundHint')}`,
+      label: [icon('home', { size: 18 }), h('span', {}, tc('goHome'))],
+    });
+  }
 
   // Inline edits save without a re-render, so they keep the latest copy here.
   const state = { list };
   const canSave = store.storageOk();
-  const note = changedNote(list);
+  const changed = changedNote(list);
 
   // Saves one text field onto the freshest stored copy. False when the list is gone.
   const saveField = (key, value) => {
     const fresh = store.getList(list.id);
     if (!fresh) return false;
     state.list = store.saveList({ ...fresh, [key]: value });
-    note.hidden = !showChanged(state.list);
+    changed.hidden = !showChanged(state.list);
     return true;
   };
 
   const hasPlaces = list.places.length > 0;
+  // Wide screens: the places on the left, sharing and deleting in a side panel.
   return h(
     'div',
-    { class: ['screen', list.places.length < MIN_TO_SHARE && 'screen--tall-bar'] },
-    topBar({ back: '#/', backLabel: tc('back') }),
-    header(state, ctx, saveField, canSave),
+    { class: ['screen', 'layout', 'layout--aside-end', list.places.length < MIN_TO_SHARE && 'screen--tall-bar'] },
+    topBar({ back: routes.home() }),
     h(
       'div',
-      { class: 'stack mt-20' },
-      !canSave && storageNote(),
-      note,
-      hasPlaces ? placeList(ctx, list) : emptyAdd(ctx, list),
+      { class: 'l-main' },
+      header(state, ctx, saveField, canSave),
+      h(
+        'div',
+        { class: 'stack mt-20' },
+        !canSave && note('alert-triangle', tc('errStorage'), { danger: true, size: 18 }),
+        changed,
+        hasPlaces ? placeList(ctx, list) : emptyAdd(ctx, list),
+      ),
     ),
-    deleteRow(ctx, state),
-    bottomBar(list),
+    h('div', { class: 'l-aside' }, shareBar(list), deleteButton(ctx, state)),
   );
 }

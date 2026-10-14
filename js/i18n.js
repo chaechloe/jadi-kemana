@@ -32,10 +32,7 @@ export const COMMON = {
     // Generic controls
     back: 'Kembali',
     close: 'Tutup',
-    next: 'Berikutnya',
-    previous: 'Sebelumnya',
     cancel: 'Batal',
-    remove: 'Hapus',
     langId: 'Bahasa Indonesia',
     langEn: 'English',
 
@@ -73,7 +70,6 @@ export const COMMON = {
     errStorage: 'Browser ini nggak bisa nyimpen daftar. Link yang udah dibagikan tetep bisa dibuka.',
     errNotFound: 'Daftar ini nggak ketemu di HP ini.',
     goHome: 'Ke halaman awal',
-    retry: 'Coba lagi',
 
     // Screen names for the document title
     titles: {
@@ -135,10 +131,7 @@ export const COMMON = {
 
     back: 'Back',
     close: 'Close',
-    next: 'Next',
-    previous: 'Previous',
     cancel: 'Cancel',
-    remove: 'Remove',
     langId: 'Bahasa Indonesia',
     langEn: 'English',
 
@@ -173,7 +166,6 @@ export const COMMON = {
     errStorage: "This browser can't save lists. Shared links still open fine.",
     errNotFound: "We couldn't find this list on this phone.",
     goHome: 'Go to the home page',
-    retry: 'Try again',
 
     titles: {
       welcome: 'Home',

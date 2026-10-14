@@ -1,11 +1,12 @@
 // Welcome (#/): the brand band, the sample ticket stack and the two CTAs. Returning coordinators
 // also get "Daftar kamu"; anyone can re-open a list from its link here.
 import { h, icon, uid } from '../ui.js';
-import { topBar, ticket, squiggleWord } from '../components.js';
+import { topBar, ticket, squiggleWord, primaryButton, note } from '../components.js';
 import { getLang, t, tc } from '../i18n.js';
 import { sampleList } from '../data.js';
 import { getLists, storageOk } from '../store.js';
 import { encodeList } from '../codec.js';
+import * as routes from '../routes.js';
 import { listItem, newListItem, linkImportItem, startNewList } from './lists-sheet.js';
 
 const S = {
@@ -53,7 +54,7 @@ function ticketStack(places) {
 /** The sample list as a friend's link (#d=…), or null if it can't be encoded. */
 async function exampleHash(sample) {
   try {
-    return `#d=${await encodeList(sample)}`;
+    return routes.friend(await encodeList(sample));
   } catch {
     return null;
   }
@@ -62,12 +63,8 @@ async function exampleHash(sample) {
 function actions(ctx, exampleHref) {
   return h(
     'div',
-    { class: 'mt-32' },
-    h(
-      'button',
-      { class: 'btn btn--primary btn--lg btn--block', attrs: { type: 'button' }, on: { click: () => startNewList(ctx) } },
-      h('span', {}, t(S, 'cta')),
-    ),
+    { class: 'hero__actions mt-32' },
+    primaryButton({ label: t(S, 'cta'), onClick: () => startNewList(ctx) }),
     exampleHref &&
       h('div', { class: 'center-row mt-8' }, h('a', { class: 'btn btn--ghost', attrs: { href: exampleHref } }, h('span', {}, t(S, 'example')))),
   );
@@ -75,8 +72,7 @@ function actions(ctx, exampleHref) {
 
 /** Only when this browser can't save: lists made now won't survive a reload. */
 function storageNote() {
-  if (storageOk()) return null;
-  return h('p', { class: 'note mt-24' }, icon('alert-triangle', { size: 16 }), h('span', { class: 'note__body' }, tc('errStorage')));
+  return storageOk() ? null : note('alert-triangle', tc('errStorage'), { class: 'mt-24' });
 }
 
 function yourLists(ctx, lists) {
@@ -109,7 +105,7 @@ export async function render(ctx) {
 
   return h(
     'div',
-    { class: 'screen screen--nobar' },
+    { class: 'screen screen--nobar screen--welcome' },
     band(),
     ticketStack(sample.places),
     actions(ctx, exampleHref),

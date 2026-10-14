@@ -1,8 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  waLink, lineLink, telegramLink, placeMessage, randomMessage, compareMessage, listMessage,
-  isSafeMapsUrl, canonicalMapsUrl, parseMapsInput,
+  waLink, placeMessage, randomMessage, compareMessage, listMessage,
+  isSafeMapsUrl, isShortMapsUrl, canonicalMapsUrl, parseMapsInput,
 } from '../js/links.js';
 import { sampleList } from '../js/data.js';
 
@@ -18,11 +18,6 @@ test('waLink encodes &, #, + and emoji, and never uses wa.me', () => {
   assert.ok(!/[&#+ \n]/.test(encoded));
   assert.ok(encoded.includes('%26') && encoded.includes('%23') && encoded.includes('%2B') && encoded.includes('%0A'));
   assert.equal(new URL(link).searchParams.get('text'), text);
-});
-
-test('LINE and Telegram links', () => {
-  assert.equal(lineLink('a & b'), 'https://line.me/R/share?text=a%20%26%20b');
-  assert.equal(telegramLink('https://x.y/#d=1z', 'hi #1'), 'https://t.me/share/url?url=https%3A%2F%2Fx.y%2F%23d%3D1z&text=hi%20%231');
 });
 
 test('place message matches the template exactly', () => {
@@ -62,11 +57,11 @@ test('list message matches the template exactly', () => {
   const link = 'https://example.org/jadi-kemana/#d=1zABC';
   assert.equal(
     listMessage(sampleList('id'), link, 'id'),
-    `Jadi kemana? 👀 Aku udah kumpulin 5 tempat buat "Spot WFC Bandung":\n${link}\nBuka, terus bahas yang kalian suka ya!`,
+    `Jadi kemana? 👀 Aku udah kumpulin 5 tempat buat "Contoh: Spot WFC Bandung":\n${link}\nBuka, terus bahas yang kalian suka ya!`,
   );
   assert.equal(
     listMessage(sampleList('en'), link, 'en'),
-    `So, where are we going? 👀 I put together 5 places for "Bandung work-from-cafe spots":\n${link}\nOpen it and bring up the ones you like!`,
+    `So, where are we going? 👀 I put together 5 places for "Example: Bandung work-from-cafe spots":\n${link}\nOpen it and bring up the ones you like!`,
   );
 });
 
@@ -216,4 +211,113 @@ test("parseMapsInput keeps apostrophes in the URL (McDonald's)", () => {
   assert.equal(r.address, '');
   // Trailing punctuation and quotes are not part of the URL.
   assert.equal(parseMapsInput(`Lihat "${url}".`).url, url);
+});
+
+test('parseMapsInput accepts every Google share format people actually paste', () => {
+  const short = 'https://maps.app.goo.gl/56P8rmgQGzV3mhrY7';
+  // Tracking parameters are dropped, so list links stay short.
+  const tagged = parseMapsInput(`${short}?g_st=ic`);
+  assert.equal(tagged.url, short);
+  assert.equal(tagged.short, true);
+  assert.equal(tagged.name, '');
+  // Google's newer share links.
+  assert.equal(parseMapsInput('https://share.google/AbCdEfGh1234567')?.short, true);
+  // Country domains such as google.co.id.
+  const coId = parseMapsInput('https://www.google.co.id/maps/place/Kinterra+Coffee+%26+Space/@-6.928,107.62,17z');
+  assert.equal(coId?.name, 'Kinterra Coffee & Space');
+  assert.equal(coId?.short, false);
+  // Android share text: name, address, then the link.
+  const shared = parseMapsInput(`Kinterra Coffee & Space\nJl. Talaga Bodas No.27, Lengkong, Bandung\n${short}`);
+  assert.equal(shared.name, 'Kinterra Coffee & Space');
+  assert.equal(shared.address, 'Jl. Talaga Bodas No.27, Lengkong, Bandung');
+  assert.equal(shared.short, true);
+  // One line: split at the first comma.
+  const oneLine = parseMapsInput(`Kinterra Coffee & Space, Jl. Talaga Bodas No.27 ${short}`);
+  assert.equal(oneLine.name, 'Kinterra Coffee & Space');
+  assert.equal(oneLine.address, 'Jl. Talaga Bodas No.27');
+  // Words after the link are chat, not a place name.
+  assert.equal(parseMapsInput(`Cek ini ${short} ya`).name, '');
+});
+
+test('isShortMapsUrl tells redirect-only links apart', () => {
+  assert.equal(isShortMapsUrl('https://maps.app.goo.gl/abc'), true);
+  assert.equal(isShortMapsUrl('https://share.google/abc'), true);
+  assert.equal(isShortMapsUrl('https://www.google.com/maps/place/X'), false);
+  assert.equal(isShortMapsUrl('https://evil.example/maps'), false);
+});
+
+// A made-up place laid out exactly like a place panel copied from the Google Maps website.
+const PANEL = `Kopi Contoh Sejahtera
+4,6
+(1.234)·Rp 25–50.000
+Kedai Kopi
+
+Overview
+
+Menu
+
+Reviews
+
+About
+
+
+Directions
+
+
+Save
+
+
+Share
+
+·
+
+Dine-in
+·
+
+Takeaway
+
+
+Jl. Contoh Raya No.12, Sukasari, Kec. Coblong, Kota Bandung, Jawa Barat 40135
+
+
+
+Open · Closes 10 pm
+
+Rp 25–50.000 per person
+Reported by 12 people
+
+
+0812-0000-0000
+
+
+6P2Q+XX Sukasari, Bandung City, West Java
+
+
+Your Maps history`;
+
+test('a place panel copied from the Google Maps website fills name, rating, count and address', () => {
+  const r = parseMapsInput(PANEL);
+  assert.equal(r.fromPanel, true);
+  assert.equal(r.short, false);
+  assert.equal(r.name, 'Kopi Contoh Sejahtera');
+  assert.equal(r.rating, 4.6);
+  assert.equal(r.ratingCount, '1234');
+  assert.equal(r.address, 'Jl. Contoh Raya No.12, Sukasari, Kec. Coblong, Kota Bandung');
+  assert.equal(r.hours, '');
+  // No phone number or plus code leaks into any field.
+  assert.ok(!JSON.stringify(r).includes('0812'));
+  assert.ok(!JSON.stringify(r).includes('6P2Q'));
+  // A working Google Maps search link for the place, so "Open in Maps" still works.
+  assert.equal(isSafeMapsUrl(r.url), true);
+  assert.equal(new URL(r.url).searchParams.get('query'), 'Kopi Contoh Sejahtera, Jl. Contoh Raya No.12, Sukasari, Kec. Coblong, Kota Bandung');
+});
+
+test('a copied panel that says "Open 24 hours" sets the hours', () => {
+  const r = parseMapsInput(PANEL.replace('Open · Closes 10 pm', 'Open 24 hours'));
+  assert.equal(r.hours, 'open24');
+});
+
+test('plain chat text is not mistaken for a place', () => {
+  assert.equal(parseMapsInput('Kopi Kenangan'), null);
+  assert.equal(parseMapsInput('Hai semua, besok jadi kemana?'), null);
 });

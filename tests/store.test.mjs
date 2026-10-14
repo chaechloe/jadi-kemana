@@ -131,7 +131,7 @@ test('importList replaces a list with the same id', async () => {
   const second = store.importList({ ...en, id: 'abcd1234', places: en.places.slice(0, 2) });
   assert.equal(second.existed, true);
   assert.equal(store.getLists().filter((l) => l.id === 'abcd1234').length, 1);
-  assert.equal(store.getList('abcd1234').title, 'Bandung work-from-cafe spots');
+  assert.equal(store.getList('abcd1234').title, 'Example: Bandung work-from-cafe spots');
   assert.equal(store.getList('abcd1234').places.length, 2);
 });
 
