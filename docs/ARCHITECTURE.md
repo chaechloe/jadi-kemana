@@ -101,7 +101,7 @@ export async function render(ctx) { /* returns an HTMLElement */ }
 // }
 ```
 
-**Layout:** phones get one column with a bottom bar pinned to the screen. From 960px wide, a view that marks its regions `.l-main` and `.l-aside` inside a `.layout` screen (`layout--aside-end` or `layout--aside-start`) gets two columns, with the side panel sticky and bottom bars laid out inline. On phones those regions are plain blocks in reading order, so the DOM order is the phone order. The friend view shows a list of places beside the card; the place form a bigger live preview; bottom sheets become centred dialogs.
+**Layout:** phones get one column with a bottom bar pinned to the screen. From 960px wide, a view that marks its regions `.l-main` and `.l-aside` inside a `.layout` screen (`layout--aside-end` or `layout--aside-start`) gets two columns, with the side panel sticky and bottom bars laid out inline. On phones those regions are plain blocks in reading order, so the DOM order is the phone order. Wide screens also show the logo in every top bar. The friend view becomes a list of places (ticket stubs) beside a horizontal card, with ‹ 2 / 5 › and the actions above it; the editor shows places as a card grid with a share panel; the place form puts fields in two columns with a live preview; the welcome screen is one rounded hero card; bottom sheets become centred dialogs.
 
 `main.js` re-renders on `hashchange` and on the `jk:lang` event, and puts focus back on the control with the same id. Views never re-render while the user types: they update `ctx.state` and patch the nodes that change.
 

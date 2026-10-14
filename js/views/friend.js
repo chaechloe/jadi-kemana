@@ -1,6 +1,5 @@
 // Friend view (#d=<payload>): what the group sees after opening a shared link.
-// One place card at a time with a peek of the next one, pager dots, swipe and arrow keys
-// (plus ‹ › buttons with a mouse). The card's head (cover, address, hours) sticks under the top bar
+// One place card at a time, with ‹ › buttons and dots, swipe and arrow keys. The card's head (cover, address, hours) sticks under the top bar
 // while the rest scrolls, and a one-time hint says there's more below. On a wide screen the places
 // are listed beside the card instead (list + card), with the actions under the list.
 // The current card lives in the hash as '&i=' (replaceState), so a reload or Back returns to it.
@@ -21,7 +20,7 @@ import {
   placeTile,
 } from '../components.js';
 import { getLang, t, tc, formatRating } from '../i18n.js';
-import { colorHex, newId, SAMPLE_ID } from '../data.js';
+import { newId, SAMPLE_ID } from '../data.js';
 import { getList, importList, storageOk } from '../store.js';
 import { waLink, placeMessage, isSafeMapsUrl } from '../links.js';
 import * as routes from '../routes.js';
@@ -184,7 +183,7 @@ function onHorizontalSwipe(el, onSwipe) {
   });
 }
 
-// A mouse drag that ends on the control it started on (e.g. the peek) would also click it.
+// A mouse drag that ends on a control inside the card would also click it.
 function swallowNextClick(el) {
   const swallow = (event) => {
     event.preventDefault();
@@ -299,17 +298,7 @@ function placeBrowser(list, params) {
   const total = places.length;
   let index = savedIndex(params, total);
   let card = placeCard(places[index], { index, total, from });
-
-  const peekCard = () =>
-    h('span', { class: 'peek__card', style: { '--place': colorHex(places[(index + 1) % total].color) } });
-  const peek =
-    total > 1 &&
-    h(
-      'button',
-      { class: 'peek', attrs: { type: 'button', 'aria-label': t(S, 'next') }, on: { click: () => go(index + 1) } },
-      peekCard(),
-    );
-  const carousel = h('section', { class: 'carousel carousel--swipe', attrs: { 'aria-label': t(S, 'cards') } }, card, peek);
+  const carousel = h('section', { class: 'carousel carousel--swipe', attrs: { 'aria-label': t(S, 'cards') } }, card);
 
   const dots = places.map((place, i) =>
     h('button', {
@@ -343,7 +332,7 @@ function placeBrowser(list, params) {
     card.replaceWith(fresh);
     card = fresh;
     watchStick(card);
-    if (peek) peek.replaceChildren(peekCard());
+    counter.textContent = counterText();
     dots.forEach((dot, i) => dot.setAttribute('aria-current', String(i === index)));
     pickButtons.forEach((button, i) => {
       if (i === index) button.setAttribute('aria-current', 'true');
@@ -370,18 +359,23 @@ function placeBrowser(list, params) {
   // The head can only be watched once the card is in the page.
   requestAnimationFrame(() => card.isConnected && watchStick(card));
 
-  // With a mouse there's no swipe: ‹ › buttons sit beside the dots (CSS shows them for fine pointers).
+  const prev = () => iconButton({ icon: 'chevron-left', label: t(S, 'previous'), onClick: () => go(index - 1) });
+  const next = () => iconButton({ icon: 'chevron-right', label: t(S, 'next'), onClick: () => go(index + 1) });
+
+  // Phones: ‹ dots › under the card.
   const nav =
     total > 1 &&
-    h(
-      'div',
-      { class: 'dots-nav' },
-      iconButton({ icon: 'chevron-left', label: t(S, 'previous'), onClick: () => go(index - 1) }),
-      h('div', { class: 'dots', attrs: { role: 'group', 'aria-label': t(S, 'dots') } }, dots),
-      iconButton({ icon: 'chevron-right', label: t(S, 'next'), onClick: () => go(index + 1) }),
-    );
+    h('div', { class: 'dots-nav' }, prev(), h('div', { class: 'dots', attrs: { role: 'group', 'aria-label': t(S, 'dots') } }, dots), next());
 
-  return { main: [carousel, nav, status, scrollHint(card)], list: placeList };
+  // Wide screens: ‹ 2 / 5 › above the card (the list on the left replaces the dots).
+  const counter = h('span', { class: 'pager__count', attrs: { 'aria-hidden': 'true' } }, counterText());
+  const pager = total > 1 && h('div', { class: 'pager' }, prev(), counter, next());
+
+  function counterText() {
+    return `${index + 1} / ${total}`;
+  }
+
+  return { main: [carousel, nav, status, scrollHint(card)], list: placeList, pager };
 }
 
 /** "Simpan ke HP ini" for a list this phone doesn't have yet; afterwards (or if it has it) a link to open it. */
@@ -445,8 +439,8 @@ function credit() {
   );
 }
 
-/** "Terserah!" and "Bandingin" (from 2 places), side by side. */
-function friendBar({ payload, from }, total) {
+/** "Terserah!" and "Bandingin" (from 2 places). */
+function friendActions({ payload, from }, total) {
   const action = (v, name, key) =>
     h(
       'a',
@@ -454,15 +448,15 @@ function friendBar({ payload, from }, total) {
       icon(name, { size: 16 }),
       h('span', {}, t(S, key)),
     );
-  return bottomBar(
-    h(
-      'div',
-      { class: 'bottom-bar__row' },
-      action('random', 'arrows-shuffle', 'random'),
-      total >= 2 && action('compare', 'columns-2', 'compare'),
-    ),
-  );
+  return [action('random', 'arrows-shuffle', 'random'), total >= 2 && action('compare', 'columns-2', 'compare')];
 }
+
+/** Phones: the actions in the bottom bar. */
+const friendBar = (params, total) => bottomBar(h('div', { class: 'bottom-bar__row' }, friendActions(params, total)));
+
+/** Wide screens: ‹ 2 / 5 › and the actions in one row above the card. */
+const friendToolbar = (pager, params, total) =>
+  h('div', { class: 'friend-toolbar' }, pager, h('div', { class: 'friend-toolbar__actions' }, friendActions(params, total)));
 
 // ---- view ----
 
@@ -488,7 +482,13 @@ export async function render(ctx) {
     'div',
     { class: 'screen screen--friend layout layout--aside-start' },
     topBar({ start: listHeading(list) }),
-    h('div', { class: 'l-main' }, ownList && previewNote(ownList.id), browser.main),
+    h(
+      'div',
+      { class: 'l-main' },
+      ownList && previewNote(ownList.id),
+      friendToolbar(browser.pager, params, total),
+      browser.main,
+    ),
     h(
       'div',
       { class: 'l-aside' },

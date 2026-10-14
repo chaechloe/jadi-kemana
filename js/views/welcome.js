@@ -106,9 +106,8 @@ export async function render(ctx) {
   return h(
     'div',
     { class: 'screen screen--nobar screen--welcome' },
-    band(),
-    ticketStack(sample.places),
-    actions(ctx, exampleHref),
+    // Phones: band, tickets and buttons stacked. Wide screens: one rounded hero card (CSS).
+    h('div', { class: 'hero' }, band(), ticketStack(sample.places), actions(ctx, exampleHref)),
     storageNote(),
     lists.length ? yourLists(ctx, lists) : openFromLink(ctx),
   );
