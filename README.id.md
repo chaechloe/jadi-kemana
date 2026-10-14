@@ -4,8 +4,10 @@
 
 🇬🇧 [Read in English](README.md)
 
+**▶ Coba langsung: [chaechloe.github.io/jadi-kemana](https://chaechloe.github.io/jadi-kemana/)**
+
 > [!NOTE]
-> **Masih dalam pengerjaan.** Versi pertamanya udah jadi dan lagi dites, tapi belum online. Kamu udah bisa [jalanin di komputer sendiri](#jalanin-di-komputer-sendiri). Klik **Star** atau **Watch** di repo ini kalau mau ngikutin perkembangannya.
+> **Masih versi awal.** Udah bisa dipakai, tapi masih baru, jadi ide dan laporan bug boleh banget dikirim lewat [Issues](https://github.com/chaechloe/jadi-kemana/issues).
 
 ## Kenapa
 
@@ -13,7 +15,7 @@ Semua grup chat pasti pernah ngalamin. Ada yang nanya "jadi kemana?", semua jawa
 
 Jadi Kemana? ngasih grup kamu bahan obrolan yang jelas: beberapa pilihan tempat yang beneran ada, dan tiap tempat gampang banget dilempar ke chat.
 
-## Nanti cara kerjanya
+## Cara kerjanya
 
 1. **Kumpulin tempatnya.** Satu orang jadi koordinator dan bikin daftar kafe, resto, atau spot nongkrong. Tempel link Google Maps, nama tempat dan perkiraan alamat jalannya langsung keisi. Kalau link-nya nggak kebaca, kamu tinggal isi sendiri.
 2. **Kirim satu link.** Semua isi daftarnya udah ada di link itu. Lempar aja ke grup. Teman-teman tinggal buka, nggak perlu install app atau bikin akun.
@@ -21,22 +23,22 @@ Jadi Kemana? ngasih grup kamu bahan obrolan yang jelas: beberapa pilihan tempat 
 
 Masih bingung? Tombol **Terserah!** bakal milihin satu tempat buat kalian. Galau antara dua tempat? **Bandingin** bakal nampilin keduanya sebelahan.
 
-## Rencana fitur
+## Fitur
 
-- [ ] Bisa bikin beberapa daftar di satu HP, misalnya "WFC Bandung", "Bukber kantor", dan "Nongkrong Sabtu"
-- [ ] Kartu tempat berisi alamat, jam buka, rating, fasilitas (WiFi, colokan, AC, mushola, parkir…), catatan dari koordinator, plus emoji dan warna buat tiap tempat
-- [ ] Tempel link Google Maps, nama tempat dan perkiraan alamatnya langsung keisi
-- [ ] Bagikan satu daftar utuh lewat satu link yang cukup pendek buat WhatsApp, LINE, dan Telegram (sekitar 15 tempat per daftar; kepanjangan buat DM Instagram)
-- [ ] Tombol WhatsApp **Bahas tempat ini!**, plus **Salin teks** dan **Bagikan** buat app lain
-- [ ] Pilih tempat secara acak dan bandingin dua tempat sebelahan
-- [ ] Bahasa Indonesia dan Inggris, bisa diganti di tiap layar
-- [ ] Bisa dipasang di layar utama HP dan tetap bisa dipakai offline
+- Bisa bikin beberapa daftar di satu HP, misalnya "WFC Bandung", "Bukber kantor", dan "Nongkrong Sabtu"
+- Kartu tempat berisi alamat, jam buka, rating, fasilitas (WiFi, colokan, AC, mushola, parkir…), catatan dari koordinator, plus emoji dan warna buat tiap tempat
+- Tempel link Google Maps, nama tempat dan perkiraan alamatnya langsung keisi
+- Bagikan satu daftar utuh (maksimal 20 tempat) lewat satu link. Daftar pendek muat di mana aja, termasuk DM Instagram; yang lebih panjang tetap muat di WhatsApp. Layar bagikan bakal ngasih tahu link kamu muat di app mana aja.
+- Tombol WhatsApp **Bahas tempat ini!**, plus **Salin** dan **Bagikan** buat app lain
+- Pilih tempat secara acak dan bandingin dua tempat sebelahan
+- Bahasa Indonesia dan Inggris, bisa diganti di tiap layar
+- Buka lagi daftar dari link-nya, misalnya kalau data browser kamu kehapus
 
 ## Privasi: tanpa akun, tanpa database
 
 - **Nggak ada database, nggak perlu bikin akun.** Daftar kamu cuma tersimpan di browser HP kamu dan di dalam link yang kamu bagikan, nggak di tempat lain.
 - **Daftarnya ada di dalam link.** Pas kamu bagiin daftarnya, semua tempatnya dimasukin ke bagian link setelah tanda `#`. Browser nggak pernah ngirim bagian itu ke server, jadi GitHub (yang nge-hosting web ini) nggak pernah lihat isi daftar kamu.
-- **Cuma pencarian peta yang keluar dari HP kamu.** Pas kamu tempel link Google Maps, app ini bisa nanya ke OpenStreetMap (dan helper kecil pembaca link, kalau dipasang) buat nyari perkiraan alamat. Yang dikirim cuma link itu dan titik lokasi tempatnya, bukan daftar kamu.
+- **Cuma pencarian peta yang keluar dari HP kamu.** Pas kamu tempel link Google Maps, app ini bisa nanya ke OpenStreetMap buat nyari perkiraan alamat. Yang dikirim cuma titik lokasi tempatnya (koordinat), bukan daftar kamu.
 - **Siapa pun yang punya link-nya bisa lihat daftarnya.** Anggap aja kayak dokumen "siapa pun yang punya link", jadi jangan tulis info pribadi (nomor HP, alamat rumah) di catatan.
 - **Link-nya sekaligus cadangan kamu.** Safari di iPhone ngehapus data situs yang udah 7 hari nggak dibuka. App yang dipasang di layar utama aman dari ini, tapi penyimpanannya terpisah dari Safari, jadi daftar yang kamu simpan di Safari nggak bakal muncul di situ. Jadi, simpan link yang udah kamu bagikan, soalnya daftarnya bisa dibuka lagi dari situ kapan aja. Tiap kali daftarnya diubah, link-nya ikut berubah, jadi simpan yang paling baru.
 
@@ -46,9 +48,13 @@ Google sebenarnya punya datanya. Tapi aturan Google Maps Platform nggak ngeboleh
 
 Jadi app ini ngisi yang emang boleh aja: nama dari link kamu, dan perkiraan alamat jalan dari OpenStreetMap. Rating, jam buka, dan fasilitas kamu isi sendiri. Ada pilihan cepat dan shortcut buat ngecek tempatnya di Maps, jadi tetap gampang.
 
-## Jadiin template sendiri *(nyusul bareng versi pertama)*
+## Jadiin template sendiri
 
-Fork repo ini, terus nyalain **GitHub Pages**. Kamu bakal dapet versi kamu sendiri di `https://<username-kamu>.github.io/jadi-kemana/`, tanpa perlu ngurus server. GitHub Pages gratis selama fork kamu tetap publik. Langkah lengkapnya bakal ditulis di sini begitu versi pertama keluar.
+1. Klik **Fork** di bagian atas halaman ini (biarin fork-nya tetap publik, soalnya GitHub Pages gratis buat repo publik).
+2. Di fork kamu, buka **Settings → Pages**. Di bagian **Build and deployment**, pilih **Deploy from a branch**, pilih `main` dan `/ (root)`, terus klik **Save**.
+3. Tunggu semenit-dua, versi kamu udah online di `https://<username-kamu>.github.io/jadi-kemana/`.
+
+Mau diubah sesuai selera? Daftar contohnya ada di `js/data.js` (`sampleList`), warna dan font di `css/tokens.css`, dan teks yang dipakai bareng ada di `js/i18n.js` (tiap layar nyimpen teksnya sendiri di bagian atas file-nya di `js/views/`).
 
 ## Jalanin di komputer sendiri
 
@@ -76,14 +82,17 @@ Susunan kodenya dijelasin di [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 ## Rencana ke depan
 
 - [x] Ide, riset, dan mockup
-- [ ] Versi pertama: daftar, kartu tempat, berbagi, tombol WhatsApp
-- [ ] Isi otomatis dari link Google Maps
+- [x] Versi pertama: daftar, kartu tempat, berbagi, tombol WhatsApp
+- [x] Isi otomatis dari link Google Maps (nama tempat + perkiraan alamat)
+- [x] Panduan setup buat yang mau pakai sebagai template
+- [ ] Dites di HP beneran dan di WhatsApp
+- [ ] Tampilan pratinjau link (gambar) yang lebih cakep pas daftar dibagikan di chat
 - [ ] Pasang di layar utama dan bisa dipakai offline
-- [ ] Panduan setup buat yang mau pakai sebagai template
+- [ ] Baca link pendek `maps.app.goo.gl` secara otomatis
 
 ## Ikut berkontribusi
 
-Ide boleh banget dikirim lewat [Issues](https://github.com/chaechloe/jadi-kemana/issues), laporan bug juga begitu versi pertama udah keluar. Saran kata-kata bahasa Indonesia yang lebih natural juga bakal ngebantu, begitu juga contoh link Google Maps yang datanya nggak keisi dengan benar.
+Ide dan laporan bug boleh banget dikirim lewat [Issues](https://github.com/chaechloe/jadi-kemana/issues). Saran kata-kata bahasa Indonesia yang lebih natural juga bakal ngebantu, begitu juga contoh link Google Maps yang datanya nggak keisi dengan benar.
 
 ## Lisensi
 

@@ -4,8 +4,10 @@
 
 🇮🇩 [Baca dalam Bahasa Indonesia](README.id.md)
 
+**▶ Try it: [chaechloe.github.io/jadi-kemana](https://chaechloe.github.io/jadi-kemana/)**
+
 > [!NOTE]
-> **Work in progress.** The first version is built and being tested, but it isn't online yet. You can already [run it locally](#run-it-locally). Click **Star** or **Watch** to follow along.
+> **Early version.** It works, but it's new, so ideas and bug reports are very welcome in [Issues](https://github.com/chaechloe/jadi-kemana/issues).
 
 ## Why
 
@@ -13,7 +15,7 @@ Every group chat has been here. Someone asks *"jadi kemana?"* ("so, where are we
 
 Jadi Kemana? gives the group something concrete to react to: a short list of real places, each one easy to bring up in the chat.
 
-## How it will work
+## How it works
 
 1. **Collect places.** One person, the coordinator, makes a list of cafes, restaurants or hangout spots. Paste a Google Maps link and the place name, plus an approximate street address, fill in for you. If a link can't be read, you type the details in yourself.
 2. **Send one link.** The whole list travels inside a single link. Drop it in the group chat. Friends just open it: no app to install, no account to make.
@@ -21,22 +23,22 @@ Jadi Kemana? gives the group something concrete to react to: a short list of rea
 
 Still stuck? **Surprise me** (*Terserah!* in Bahasa Indonesia) lets the app pick one for you. Torn between two? **Compare** puts them side by side.
 
-## Planned features
+## Features
 
-- [ ] Several lists on one phone, for example *WFC Bandung* (work-from-cafe spots), *Office iftar* and *Saturday hangout*
-- [ ] Place cards with the address, opening hours, rating, perks (WiFi, power outlets, AC, prayer room, parking…), a note from the coordinator, and an emoji and colour per place
-- [ ] Paste a Google Maps link to fill in the place name and an approximate address
-- [ ] Share a whole list as one link that's short enough for WhatsApp, LINE and Telegram (around 15 places per list; too long for Instagram DMs)
-- [ ] **Discuss this place!** WhatsApp button, plus **Copy text** and **Share** for other apps
-- [ ] Random pick and side-by-side compare
-- [ ] Bahasa Indonesia and English, switchable on every screen
-- [ ] Installable on your phone's Home Screen, with offline support
+- Several lists on one phone, for example *WFC Bandung* (work-from-cafe spots), *Office iftar* and *Saturday hangout*
+- Place cards with the address, opening hours, rating, perks (WiFi, power outlets, AC, prayer room, parking…), a note from the coordinator, and an emoji and colour per place
+- Paste a Google Maps link to fill in the place name and an approximate address
+- Share a whole list (up to 20 places) as one link. Short lists fit everywhere, even Instagram DMs; longer ones still fit WhatsApp. The share screen tells you which apps your link fits.
+- **Discuss this place!** WhatsApp button, plus **Copy** and **Share** for other apps
+- Random pick and side-by-side compare
+- Bahasa Indonesia and English, switchable on every screen
+- Reopen a list from its link, for example after your browser cleared its data
 
 ## Privacy: no accounts, no database
 
 - **No database, no sign-up.** Your lists are saved in your phone's browser and inside the links you share, nowhere else.
 - **The list lives inside the link.** When you share, the places are packed into the part of the link after the `#`. Browsers never send that part to the web server, so the site's host (GitHub) never sees your places.
-- **Only map lookups leave your phone.** When you paste a Google Maps link, the app may ask OpenStreetMap (and, if one is set up, a small link-reading helper) for an approximate address. Only that link and the place's map position are sent, never your list.
+- **Only map lookups leave your phone.** When you paste a Google Maps link, the app may ask OpenStreetMap for an approximate address. Only the place's map position (its coordinates) is sent, never your list.
 - **Anyone with the link can see the list.** Treat it like an "anyone with the link" document, and keep private things (phone numbers, home addresses) out of the notes.
 - **The link is also your backup.** iPhone Safari deletes a site's saved data after 7 days without a visit. An app added to the Home Screen is safe from this, but it keeps its own separate storage, so lists saved in Safari won't show up there. Either way, keep the link you shared: you can always reopen a list from it. Each change to a list makes a new link, so keep the newest one.
 
@@ -46,9 +48,13 @@ Google has this data, but the Google Maps Platform terms don't allow apps to sav
 
 So the app fills in what it legitimately can: the name from your link, and an approximate street address from OpenStreetMap. You add the rating, hours and perks yourself, with quick presets and a shortcut to check the place on Maps.
 
-## Use it as your own template *(coming with the first version)*
+## Use it as your own template
 
-Fork this repo and turn on **GitHub Pages**. You'll get your own copy at `https://<your-username>.github.io/jadi-kemana/`, with no server to run. GitHub Pages is free as long as your fork stays public. Setup steps will go here once the first version is out.
+1. Click **Fork** at the top of this page (keep the fork public: GitHub Pages is free for public repos).
+2. In your fork, open **Settings → Pages**. Under **Build and deployment**, choose **Deploy from a branch**, pick `main` and `/ (root)`, and click **Save**.
+3. After a minute or two your copy is live at `https://<your-username>.github.io/jadi-kemana/`.
+
+Want to make it yours? The example list is in `js/data.js` (`sampleList`), the colours and fonts are in `css/tokens.css`, and the shared texts are in `js/i18n.js` (each screen keeps its own texts at the top of its file in `js/views/`).
 
 ## Run it locally
 
@@ -76,14 +82,17 @@ How the code is organised is described in [docs/ARCHITECTURE.md](docs/ARCHITECTU
 ## Roadmap
 
 - [x] Idea, research and mockups
-- [ ] First version: lists, place cards, sharing, WhatsApp buttons
-- [ ] Google Maps link auto-fill
+- [x] First version: lists, place cards, sharing, WhatsApp buttons
+- [x] Google Maps link auto-fill (place name + approximate address)
+- [x] A setup guide for people using it as a template
+- [ ] Testing on real phones and in WhatsApp
+- [ ] A nicer link preview (image) when a list is shared in chat
 - [ ] Install to Home Screen and offline support
-- [ ] A setup guide for people using it as a template
+- [ ] Reading short `maps.app.goo.gl` links automatically
 
 ## Contributing
 
-Ideas are welcome in [Issues](https://github.com/chaechloe/jadi-kemana/issues), and bug reports too once the first version is out. Suggestions for more natural Bahasa Indonesia wording are especially helpful, and so are Google Maps links that don't fill in properly.
+Ideas and bug reports are welcome in [Issues](https://github.com/chaechloe/jadi-kemana/issues). Suggestions for more natural Bahasa Indonesia wording are especially helpful, and so are Google Maps links that don't fill in properly.
 
 ## License
 
