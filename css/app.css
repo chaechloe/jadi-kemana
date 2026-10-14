@@ -122,7 +122,7 @@ h3 {
 }
 
 /* On a place colour or the brand band the ring turns white. */
-:where(.band, .cover, .ticket, .cmp-head) :focus-visible {
+:where(.band, .cover, .ticket) :focus-visible {
   outline-color: #FFFFFF;
 }
 
@@ -1709,9 +1709,6 @@ button.row:focus-visible {
 }
 
 
-
-
-
 /* Address and hours lines: small ink text, 14px ink-3 icons, 8 between lines. */
 .meta-lines {
   display: flex;
@@ -2193,75 +2190,25 @@ button.row:focus-visible {
    Compare
    ========================================================================== */
 
-.cmp-pickers {
-  display: flex;
-  gap: var(--sp-12);
-}
-
-.cmp-pickers > * {
-  flex: 1 1 0;
-  min-width: 0;
-}
-
-.cmp-heads {
-  display: flex;
-  gap: var(--sp-12);
-}
-
-.cmp-head {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: var(--sp-12);
-  flex: 1 1 0;
-  min-width: 0;
-  height: 72px;
-  padding: 0 var(--sp-12);
-  border-radius: var(--r-16);
-  background: var(--place, var(--brand));
-  color: #FFFFFF;
-}
-
-.cmp-head .tile {
-  border-radius: var(--r-8);
-}
-
-/* "A" / "B" badge on the tile's top-left corner. */
-.cmp-head__badge {
-  position: absolute;
-  top: 10px;
-  left: 6px;
-  background: var(--surface);
-  color: var(--ink);
-}
-
-.cmp-head__name {
-  display: -webkit-box;
-  min-width: 0;
-  overflow: hidden;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  font-family: var(--font-ui);
-  font-size: 16px;
-  line-height: 22px;
-  font-weight: 600;
-  letter-spacing: 0;
-  color: #FFFFFF;
-  overflow-wrap: anywhere;
-}
-
+/* One card: a head row with the two places (each one also its picker), pinned under the top bar
+   while the rows scroll, then titled groups of rows. Phones: a row's label sits on its own line
+   above the A and B values, so the values line up under their heads. Wide screens: label | A | B. */
 .cmp-table {
-  padding: 0 var(--sp-12);
+  padding: 0 var(--sp-16) var(--sp-4);
   border-radius: var(--r-24);
   background: var(--surface);
   box-shadow: var(--e1);
 }
 
 .cmp-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-areas:
+    "label label"
+    ". .";
   align-items: center;
-  gap: var(--sp-8);
-  min-height: 52px;
+  column-gap: var(--sp-12);
+  row-gap: var(--sp-4);
   padding: var(--sp-12) 0;
 }
 
@@ -2270,37 +2217,38 @@ button.row:focus-visible {
 }
 
 .cmp-row--top {
-  align-items: flex-start;
+  align-items: start;
 }
 
-/* Facility rows: 44 tall. */
+/* Facility rows: a label and two checks, kept short. */
 .cmp-row--compact {
-  min-height: 44px;
-  padding: var(--sp-4) 0;
+  row-gap: 2px;
+  padding: var(--sp-8) 0;
 }
 
 .cmp-row__label {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--sp-4);
-  flex: none;
-  width: 88px;
-  font-size: 14px;
-  line-height: 18px;
+  grid-area: label;
+  min-width: 0;
+  font-size: 12px;
+  line-height: 16px;
   font-weight: 600;
   color: var(--ink-2);
   overflow-wrap: anywhere;
+}
+
+/* Facility labels flow their icon inline with the text. */
+.cmp-row__label-text > .icon {
+  margin-right: 6px;
+  vertical-align: -3px;
 }
 
 .cmp-row__cell {
   display: flex;
   align-items: center;
   gap: var(--sp-4);
-  flex: 1 1 0;
   min-width: 0;
-  font-size: 13px;
-  line-height: 18px;
-  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
   color: var(--ink-2);
   font-variant-numeric: tabular-nums;
   overflow-wrap: anywhere;
@@ -2317,10 +2265,197 @@ button.row:focus-visible {
   color: var(--ink);
 }
 
+/* A note keeps its line breaks. */
+.cmp-row__text {
+  white-space: pre-line;
+}
+
 .cmp-dash {
   color: var(--ink-3);
   font-size: 14px;
   font-weight: 500;
+}
+
+/* The head row spans the card's full width, so its surface covers the rows passing beneath it. */
+.cmp-row--head {
+  position: sticky;
+  top: var(--topbar-h);
+  z-index: 6;
+  grid-template-areas: none;
+  margin: 0 calc(-1 * var(--sp-16));
+  padding: var(--sp-12) var(--sp-16);
+  border-radius: var(--r-24) var(--r-24) 0 0;
+  background: var(--surface);
+  box-shadow: 0 1px 0 var(--line);
+}
+
+/* The label column's header: for screen readers only on phones (a visible column on wide screens). */
+.cmp-corner {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* A place head in its colour; the invisible select on top of it opens the list of places. */
+.cmp-pick {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-8);
+  min-width: 0;
+  min-height: 56px;
+  padding: var(--sp-8) var(--sp-8) var(--sp-8) 10px;
+  border-radius: var(--r-16);
+  background: var(--place, var(--brand));
+  color: #FFFFFF;
+}
+
+.cmp-pick:has(> .cmp-pick__select:focus-visible) {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.cmp-pick__badge {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 12px;
+  line-height: 1;
+  font-weight: 700;
+}
+
+.cmp-pick__tile {
+  display: none;
+}
+
+.cmp-pick__name {
+  display: -webkit-box;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  font-size: 14px;
+  line-height: 18px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.cmp-pick__select {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  opacity: 0;
+  font-size: 16px; /* 16px or more: iOS Safari doesn't zoom in on focus */
+  cursor: pointer;
+  appearance: none;
+}
+
+/* "INFO" / "FASILITAS": a full-width band between groups. */
+.cmp-group__title {
+  margin: 0 calc(-1 * var(--sp-16));
+  padding: var(--sp-8) var(--sp-16);
+  background: var(--fill);
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+
+/* ==========================================================================
+   Random pick
+   ========================================================================== */
+
+/* The stage: a soft orange panel with orange dots, the ticket dealt onto it and a sticker. */
+.pick__stage {
+  position: relative;
+  display: grid;
+  place-items: center;
+  padding: var(--sp-32) var(--sp-16);
+  border-radius: 32px;
+  background-color: var(--brand-soft);
+  background-image: radial-gradient(rgba(192, 83, 11, 0.14) 1.5px, transparent 1.6px);
+  background-size: var(--dots-size);
+}
+
+.pick__sticker {
+  position: absolute;
+  top: var(--sp-16);
+  right: var(--sp-16);
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 var(--sp-12);
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 700;
+  box-shadow: var(--e2);
+  transform: rotate(6deg);
+}
+
+.pick__sticker > .icon {
+  color: var(--star);
+}
+
+/* A new pick: the sticker pops back on (the reduced-motion rules skip it). */
+.pick__sticker--pop {
+  animation: sticker-pop 320ms ease-out both;
+}
+
+@keyframes sticker-pop {
+  from {
+    opacity: 0;
+    transform: rotate(6deg) scale(0.6);
+  }
+  60% {
+    opacity: 1;
+    transform: rotate(6deg) scale(1.08);
+  }
+  to {
+    transform: rotate(6deg) scale(1);
+  }
+}
+
+.pick__details {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-16);
+  margin-top: var(--sp-16);
+  padding: var(--sp-20);
+  border-radius: var(--r-24);
+  background: var(--surface);
+  box-shadow: var(--e1);
+}
+
+.pick__heading {
+  margin-bottom: var(--sp-12);
+  font-size: 15px;
+  line-height: 20px;
+  font-weight: 600;
+}
+
+.pick__actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-8);
+  margin-top: var(--sp-20);
 }
 
 /* ==========================================================================
@@ -2884,14 +3019,6 @@ button.row:focus-visible {
   touch-action: pan-y pinch-zoom;
 }
 
-/* views/compare */
-/* Facility labels flow their icon inline, so a long label wraps under it and uses the whole
-   88px column instead of breaking mid-word beside the icon. */
-.cmp-row__label-text > .icon {
-  margin-right: var(--sp-8);
-  vertical-align: top;
-}
-
 /* views/editor */
 /* While "Lanjut bagikan" is disabled the bottom bar carries a hint line (8 + 18px), so the
    screen leaves that much more room above the bar. */
@@ -3004,6 +3131,13 @@ button.row:focus-visible {
 
   .layout--aside-start {
     grid-template-columns: 360px minmax(0, 1fr);
+  }
+
+  /* Smaller laptops: a narrower list leaves the card room for its two columns. */
+  @media (max-width: 1179px) {
+    .layout--aside-start {
+      grid-template-columns: 300px minmax(0, 1fr);
+    }
   }
 
   .layout--aside-end > .l-main,
@@ -3131,13 +3265,35 @@ button.row:focus-visible {
     text-overflow: ellipsis;
   }
 
-  /* ‹ 2 / 5 › on the left, Terserah! and Bandingin on the right. */
+  /* ˄ 2 / 5 ˅ and a scroll hint on the left, Terserah! and Bandingin on the right. */
   .friend-toolbar {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: var(--sp-16);
     padding-top: var(--sp-16);
+  }
+
+  .friend-toolbar__nav {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-12);
+    min-width: 0;
+  }
+
+  .friend-toolbar__hint {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    line-height: 18px;
+    font-weight: 500;
+    color: var(--ink-2);
+    white-space: nowrap;
+  }
+
+  .friend-toolbar__hint > .icon {
+    animation: hint-nudge 1.2s ease-in-out 3;
   }
 
   .pager {
@@ -3160,7 +3316,15 @@ button.row:focus-visible {
 
   .friend-toolbar__actions {
     display: flex;
+    flex: none;
     gap: var(--sp-8);
+  }
+
+  /* No room for the hint beside the buttons: the ˄ ˅ and the list say enough. */
+  @media (max-width: 1059px) {
+    .friend-toolbar__hint {
+      display: none;
+    }
   }
 
   .friend-toolbar__actions > .btn {
@@ -3169,19 +3333,48 @@ button.row:focus-visible {
     padding: 0 var(--sp-16);
   }
 
-  .screen--friend .dots-nav,
-  .screen--friend .bottom-bar {
+  /* The page stays put: the cards scroll inside their own column, one card per stop, so one turn
+     of the wheel (or one swipe on the touchpad) brings the next place. */
+  .screen--friend {
+    padding-bottom: 0;
+  }
+
+  .screen--friend > .l-main {
+    display: flex;
+    flex-direction: column;
+    height: calc(100dvh - var(--topbar-h));
+    min-height: 520px;
+    padding-bottom: var(--sp-24);
+  }
+
+  .card-stack {
+    position: relative; /* the cards' offsetTop is measured from here */
+    flex: 1 1 0;
+    min-height: 0;
+    margin: var(--sp-16) -8px 0;
+    padding: 0 8px; /* room for the cards' shadows */
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scroll-snap-type: y mandatory;
+    scrollbar-width: none;
+  }
+
+  .card-stack::-webkit-scrollbar {
     display: none;
   }
 
-  .screen--friend .carousel {
-    padding-top: var(--sp-16);
+  /* Each card fills the column, less a gap that holds its shadow, so the next one never peeks. */
+  .card-stack > .placecard {
+    min-height: calc(100% - var(--sp-12));
+    margin-bottom: var(--sp-12);
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
   }
 
-  /* Cover on the left, details on the right: the whole place fits on screen. */
+  /* Cover on the left, details on the right: the whole place fits in the column. */
   .screen--friend .placecard {
     display: grid;
-    grid-template-columns: 300px minmax(0, 1fr);
+    grid-template-columns: minmax(220px, 42%) minmax(0, 1fr);
   }
 
   .screen--friend .placecard__sentinel {
@@ -3220,10 +3413,6 @@ button.row:focus-visible {
   /* The send button sits at the bottom, level with the cover's end. */
   .screen--friend .placecard__body > .btn--go {
     margin-top: auto;
-  }
-
-  .scroll-hint {
-    bottom: var(--sp-24);
   }
 
   /* ---- place form: two-column fields + a live preview ---- */
@@ -3265,65 +3454,78 @@ button.row:focus-visible {
     box-shadow: inset 0 0 0 1.5px var(--line-dash);
   }
 
-  /* ---- welcome: one rounded hero card, then lists as cards ---- */
-  .screen--welcome {
-    padding-top: var(--sp-24);
-  }
-
+  /* ---- welcome: an open hero on the page (copy left, tickets right), then lists as cards ---- */
   .hero {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 380px;
+    grid-template-columns: minmax(0, 1fr) 400px;
+    grid-template-rows: auto 1fr auto auto auto 1fr;
     grid-template-areas:
       "bar bar"
-      "title stack"
-      "lead stack"
-      "actions stack";
+      ". art"
+      "title art"
+      "lead art"
+      "actions art"
+      ". art";
     column-gap: var(--sp-48);
-    padding: 0 var(--sp-48) var(--sp-48);
-    border-radius: 32px;
-    background-color: var(--brand);
-    background-image: var(--dots);
-    background-size: var(--dots-size);
-    color: #FFFFFF;
-    box-shadow: var(--e1);
   }
 
+  /* The band's orange box goes away; its pieces join the grid. */
   .hero > .band {
     display: contents;
   }
 
   .hero .topbar {
     grid-area: bar;
-    margin: 0;
-    padding: 0;
+  }
+
+  /* The top bar is on the page ground here, so it takes the ordinary colours. */
+  .hero .topbar--band {
+    color: var(--ink);
+  }
+
+  .hero .topbar--band .wordmark {
+    color: var(--brand-hover);
+  }
+
+  .hero .seg--band {
+    background: var(--fill-strong);
+  }
+
+  .hero .seg--band .seg__pill {
+    color: var(--ink-2);
+  }
+
+  .hero .seg--band .seg__btn[aria-pressed="true"] .seg__pill {
+    background: var(--surface);
+    box-shadow: 0 1px 2px rgba(62, 44, 32, 0.14);
+    color: var(--ink);
   }
 
   .hero .band__title {
     grid-area: title;
-    max-width: 560px;
-    margin-top: var(--sp-32);
-    font-size: 46px;
-    line-height: 52px;
+    max-width: 620px;
+    margin-top: 0;
+    font-size: 50px;
+    line-height: 56px;
+    color: var(--ink);
+  }
+
+  .hero .squiggle {
+    color: var(--brand-hover);
+  }
+
+  .hero .squiggle__line {
+    color: var(--brand);
+    opacity: 0.5;
   }
 
   .hero .band__lead {
     grid-area: lead;
-    max-width: 480px;
-    margin-top: var(--sp-16);
-    font-size: 17px;
-    line-height: 26px;
-  }
-
-  .hero .ticket-stack {
-    grid-area: stack;
-    align-self: center;
-    justify-self: center;
-    margin: var(--sp-32) 0 0;
-    transform: scale(1.2);
-  }
-
-  .hero .ticket {
-    --notch: var(--brand);
+    max-width: 500px;
+    margin-top: var(--sp-20);
+    font-size: 18px;
+    line-height: 28px;
+    color: var(--ink-2);
   }
 
   .hero__actions {
@@ -3339,23 +3541,48 @@ button.row:focus-visible {
     padding: 0 var(--sp-32);
   }
 
-  /* White buttons on the orange card. */
-  .hero__actions > .btn--primary {
-    background: #FFFFFF;
-    color: var(--brand-edge);
-    box-shadow: 0 3px 0 rgba(43, 31, 23, 0.25);
-  }
-
   .hero__actions > .center-row {
     margin-top: 0;
   }
 
-  .hero__actions .btn--ghost {
-    color: #FFFFFF;
+  /* The three sample tickets in a tidy cascade on a soft orange blob. */
+  .hero .ticket-stack {
+    grid-area: art;
+    align-self: center;
+    justify-self: center;
+    width: 356px;
+    height: 324px;
+    margin: var(--sp-48) 0;
+  }
+
+  .hero .ticket-stack::before {
+    content: '';
+    position: absolute;
+    inset: -40px;
+    border-radius: 46% 54% 50% 50% / 52% 46% 54% 48%;
+    background-color: var(--brand-soft);
+    background-image: radial-gradient(rgba(192, 83, 11, 0.12) 1.5px, transparent 1.6px);
+    background-size: var(--dots-size);
+  }
+
+  .hero .ticket {
+    --notch: var(--brand-soft);
+  }
+
+  .hero .ticket-stack > :nth-child(1) {
+    transform: rotate(-4deg);
+  }
+
+  .hero .ticket-stack > :nth-child(2) {
+    transform: translate(56px, 106px) rotate(2.5deg);
+  }
+
+  .hero .ticket-stack > :nth-child(3) {
+    transform: translate(12px, 212px) rotate(-1.5deg);
   }
 
   .screen--welcome .section {
-    margin-top: var(--sp-40);
+    margin-top: var(--sp-24);
   }
 
   .screen--welcome .list-surface {
@@ -3365,11 +3592,18 @@ button.row:focus-visible {
 
   .screen--welcome .list-surface > li > .row,
   .screen--welcome .list-surface > li.row {
-    min-height: 88px;
+    min-height: 80px;
   }
 
+  /* "+ Daftar baru" is an action, not a list: a dashed outline instead of a card. */
+  .screen--welcome .list-surface > li:has(> .row--add:not(.link-import__toggle)) {
+    background: none;
+    box-shadow: inset 0 0 0 1.5px var(--line-dash);
+  }
+
+  /* "Buka daftar dari link" opens a form, so it gets a row of its own. */
   .screen--welcome .list-surface > li:has(.link-import__toggle) {
-    grid-column: span 2;
+    grid-column: 1 / -1;
   }
 
   /* ---- one-column screens at a readable width ---- */
@@ -3377,13 +3611,94 @@ button.row:focus-visible {
     max-width: 880px;
   }
 
-  .screen--narrow {
-    max-width: 600px;
+  .screen--medium > .bottom-bar {
+    margin-top: var(--sp-24);
   }
 
-  .screen--medium > .bottom-bar,
-  .screen--narrow > .bottom-bar {
-    margin-top: var(--sp-24);
+  /* ---- compare: label | A | B, the heads pinned under the top bar ---- */
+  .cmp-table {
+    padding: 0 var(--sp-24) var(--sp-8);
+  }
+
+  .cmp-row {
+    grid-template-columns: 180px minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-areas: none;
+    column-gap: var(--sp-24);
+    padding: 14px 0;
+  }
+
+  .cmp-row--compact {
+    padding: 10px 0;
+  }
+
+  .cmp-row__label {
+    grid-area: auto;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-size: 14px;
+    line-height: 20px;
+  }
+
+  .cmp-row--head,
+  .cmp-group__title {
+    margin: 0 calc(-1 * var(--sp-24));
+    padding-left: var(--sp-24);
+    padding-right: var(--sp-24);
+  }
+
+  .cmp-row--head {
+    padding-top: var(--sp-16);
+    padding-bottom: var(--sp-16);
+  }
+
+  .cmp-corner {
+    position: static;
+    width: auto;
+    height: auto;
+    clip-path: none;
+  }
+
+  .cmp-pick {
+    gap: var(--sp-12);
+    min-height: 64px;
+    padding: var(--sp-8) var(--sp-12);
+  }
+
+  .cmp-pick__tile {
+    display: inline-flex;
+    border-radius: var(--r-12);
+  }
+
+  .cmp-pick__name {
+    font-size: 16px;
+    line-height: 22px;
+  }
+
+  /* ---- random: the stage on the left, the details and actions beside it ---- */
+  .pick {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    column-gap: var(--sp-32);
+    align-items: center;
+  }
+
+  .pick__stage {
+    min-height: 440px;
+    padding: var(--sp-48) var(--sp-32);
+  }
+
+  .pick__details {
+    margin-top: 0;
+    padding: var(--sp-24);
+  }
+
+  .pick__actions {
+    margin-top: var(--sp-16);
+  }
+
+  .pick__slot:empty + .pick__actions {
+    margin-top: 0;
   }
 
   /* ---- bottom sheets become centred dialogs ---- */

@@ -1,7 +1,9 @@
 // Friend view (#d=<payload>): what the group sees after opening a shared link.
-// One place card at a time, with ‹ › buttons and dots, swipe and arrow keys. The card's head (cover, address, hours) sticks under the top bar
-// while the rest scrolls, and a one-time hint says there's more below. On a wide screen the places
-// are listed beside the card instead (list + card), with the actions under the list.
+// Phones: one place card at a time, with ‹ › buttons and dots, swipe and arrow keys. The card's
+// head (cover, address, hours) sticks under the top bar while the rest scrolls, and a one-time
+// hint says there's more below.
+// Wide screens: every card in a column you scroll through (one card per stop), with the places
+// listed on the left and ˄ 2 / 5 ˅ above; both follow the scrolling.
 // The current card lives in the hash as '&i=' (replaceState), so a reload or Back returns to it.
 import { h, icon, toast, copyWithToast, shareOrCopy } from '../ui.js';
 import {
@@ -33,6 +35,7 @@ const S = {
     next: 'Tempat berikutnya',
     previous: 'Tempat sebelumnya',
     scrollHint: 'Scroll ke bawah buat lihat fasilitas & catatan',
+    scrollPlaces: 'Scroll buat pindah tempat',
     dots: 'Pilih tempat',
     dot: 'Tempat {i}: {name}',
     random: 'Terserah!',
@@ -56,6 +59,7 @@ const S = {
     next: 'Next place',
     previous: 'Previous place',
     scrollHint: 'Scroll down for perks & notes',
+    scrollPlaces: 'Scroll to browse places',
     dots: 'Choose a place',
     dot: 'Place {i}: {name}',
     random: 'Surprise me',
@@ -309,21 +313,6 @@ function placeBrowser(list, params) {
   );
   const status = h('p', { class: 'visually-hidden', attrs: { role: 'status' } });
 
-  // Wide screens: every place as a row beside the card (CSS hides it on phones).
-  const rowMeta = (place) => {
-    const rating = formatRating(place.rating, '', getLang());
-    return [rating && `★ ${rating}`, place.address].filter(Boolean).join(' · ');
-  };
-  const picks = places.map((place, i) =>
-    listRow({ tile: placeTile(place), title: place.name, meta: rowMeta(place), current: i === index, onClick: () => go(i) }),
-  );
-  const pickButtons = picks.map((row) => row.querySelector('.row__main'));
-  const placeList = h(
-    'nav',
-    { class: 'place-picks', attrs: { 'aria-label': t(S, 'places') } },
-    h('ul', { class: 'list-surface', attrs: { role: 'list' } }, picks),
-  );
-
   function go(next) {
     const focusWasInCard = card.contains(document.activeElement);
     index = ((next % total) + total) % total;
@@ -332,12 +321,7 @@ function placeBrowser(list, params) {
     card.replaceWith(fresh);
     card = fresh;
     watchStick(card);
-    counter.textContent = counterText();
     dots.forEach((dot, i) => dot.setAttribute('aria-current', String(i === index)));
-    pickButtons.forEach((button, i) => {
-      if (i === index) button.setAttribute('aria-current', 'true');
-      else button.removeAttribute('aria-current');
-    });
 
     rememberIndex(params, index);
     revealCard(carousel);
@@ -362,20 +346,147 @@ function placeBrowser(list, params) {
   const prev = () => iconButton({ icon: 'chevron-left', label: t(S, 'previous'), onClick: () => go(index - 1) });
   const next = () => iconButton({ icon: 'chevron-right', label: t(S, 'next'), onClick: () => go(index + 1) });
 
-  // Phones: ‹ dots › under the card.
+  // ‹ dots › under the card.
   const nav =
     total > 1 &&
     h('div', { class: 'dots-nav' }, prev(), h('div', { class: 'dots', attrs: { role: 'group', 'aria-label': t(S, 'dots') } }, dots), next());
 
-  // Wide screens: ‹ 2 / 5 › above the card (the list on the left replaces the dots).
-  const counter = h('span', { class: 'pager__count', attrs: { 'aria-hidden': 'true' } }, counterText());
-  const pager = total > 1 && h('div', { class: 'pager' }, prev(), counter, next());
+  return { main: [carousel, nav, status, scrollHint(card)], list: null, pager: null };
+}
 
-  function counterText() {
-    return `${index + 1} / ${total}`;
+// ---- wide screens: scroll through the cards ----
+
+/** The places as rows (little ticket stubs) beside the cards. */
+function placePicks(places, index, onPick) {
+  const meta = (place) => {
+    const rating = formatRating(place.rating, '', getLang());
+    return [rating && `★ ${rating}`, place.address].filter(Boolean).join(' · ');
+  };
+  const rows = places.map((place, i) =>
+    listRow({ tile: placeTile(place), title: place.name, meta: meta(place), current: i === index, onClick: () => onPick(i) }),
+  );
+  const buttons = rows.map((row) => row.querySelector('.row__main'));
+  const node = h(
+    'nav',
+    { class: 'place-picks', attrs: { 'aria-label': t(S, 'places') } },
+    h('ul', { class: 'list-surface', attrs: { role: 'list' } }, rows),
+  );
+  const setCurrent = (current) =>
+    buttons.forEach((button, i) => {
+      if (i === current) button.setAttribute('aria-current', 'true');
+      else button.removeAttribute('aria-current');
+    });
+  return { node, setCurrent };
+}
+
+/**
+ * Every card in one scrolling column; each card fills it and snaps into place, so a scroll is
+ * "next place". The list on the left, ˄ 2 / 5 ˅ and '&i=' follow whichever card is in view.
+ */
+function placeStack(list, params) {
+  const { places, from } = list;
+  const total = places.length;
+  let index = savedIndex(params, total);
+  let shown = -1;
+  let heading = null; // the card a ˄ ˅ or list click is scrolling to; the cards passed on the way don't count
+  let headingTimer = 0;
+
+  const cards = places.map((place, i) => placeCard(place, { index: i, total, from }));
+  const stack = h('section', { class: 'card-stack', attrs: { 'aria-label': t(S, 'cards') } }, cards);
+  const picks = placePicks(places, index, (i) => show(i));
+  const counter = h('span', { class: 'pager__count', attrs: { 'aria-hidden': 'true' } });
+  const status = h('p', { class: 'visually-hidden', attrs: { role: 'status' } });
+
+  function setCurrent(i, announce) {
+    if (i === shown) return;
+    shown = i;
+    index = i;
+    counter.textContent = `${index + 1} / ${total}`;
+    picks.setCurrent(index);
+    rememberIndex(params, index);
+    if (announce) status.textContent = cards[index].getAttribute('aria-label');
   }
 
-  return { main: [carousel, nav, status, scrollHint(card)], list: placeList, pager };
+  /** The card nearest the top of the column. */
+  function cardInView() {
+    const top = stack.scrollTop + stack.clientHeight / 3;
+    let nearest = 0;
+    cards.forEach((card, i) => {
+      if (card.offsetTop <= top) nearest = i;
+    });
+    return nearest;
+  }
+
+  /** Once a scroll is over (or cut short), the list and counter follow wherever the column stopped. */
+  function settle() {
+    heading = null;
+    clearTimeout(headingTimer);
+    setCurrent(cardInView(), false);
+  }
+
+  /** Scrolls card i into place (wrapping around at either end). */
+  function show(i) {
+    const next = ((i % total) + total) % total;
+    heading = next;
+    clearTimeout(headingTimer);
+    headingTimer = setTimeout(settle, 1500); // browsers without 'scrollend'
+    stack.scrollTo({ top: cards[next].offsetTop, behavior: reducedMotion() ? 'auto' : 'smooth' });
+    setCurrent(next, true);
+  }
+
+  let ticking = false;
+  stack.addEventListener(
+    'scroll',
+    () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        ticking = false;
+        const nearest = cardInView();
+        if (heading === null) setCurrent(nearest, false);
+        else if (nearest === heading) settle();
+      });
+    },
+    { passive: true },
+  );
+  stack.addEventListener('scrollend', settle);
+  stack.addEventListener('keydown', (event) => {
+    const step = ARROW_STEPS[event.key];
+    if (!step || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+    event.preventDefault();
+    show(index + step);
+  });
+
+  const pager =
+    total > 1 &&
+    h(
+      'div',
+      { class: 'pager' },
+      iconButton({ icon: 'chevron-up', label: t(S, 'previous'), onClick: () => show(index - 1) }),
+      counter,
+      iconButton({ icon: 'chevron-down', label: t(S, 'next'), onClick: () => show(index + 1) }),
+    );
+
+  setCurrent(index, false);
+  // Start on the remembered card once the column is in the page.
+  requestAnimationFrame(() => stack.isConnected && stack.scrollTo({ top: cards[index].offsetTop }));
+
+  return { main: [stack, status], list: picks.node, pager };
+}
+
+// Crossing the wide-screen breakpoint (window resized) re-renders the view in the other mode.
+const WIDE = '(min-width: 960px)';
+let breakpointWatch = null;
+
+function watchBreakpoint(ctx) {
+  const query = matchMedia(WIDE);
+  if (breakpointWatch) breakpointWatch.query.removeEventListener('change', breakpointWatch.onChange);
+  const onChange = () => {
+    if (document.querySelector('.screen--friend')) ctx.rerender();
+    else query.removeEventListener('change', onChange);
+  };
+  query.addEventListener('change', onChange);
+  breakpointWatch = { query, onChange };
 }
 
 /** "Simpan ke HP ini" for a list this phone doesn't have yet; afterwards (or if it has it) a link to open it. */
@@ -454,9 +565,19 @@ function friendActions({ payload, from }, total) {
 /** Phones: the actions in the bottom bar. */
 const friendBar = (params, total) => bottomBar(h('div', { class: 'bottom-bar__row' }, friendActions(params, total)));
 
-/** Wide screens: ‹ 2 / 5 › and the actions in one row above the card. */
+/** Wide screens: ˄ 2 / 5 ˅, a scroll hint and the actions in one row above the cards. */
 const friendToolbar = (pager, params, total) =>
-  h('div', { class: 'friend-toolbar' }, pager, h('div', { class: 'friend-toolbar__actions' }, friendActions(params, total)));
+  h(
+    'div',
+    { class: 'friend-toolbar' },
+    h(
+      'div',
+      { class: 'friend-toolbar__nav' },
+      pager,
+      total > 1 && h('span', { class: 'friend-toolbar__hint' }, icon('arrow-down', { size: 14 }), t(S, 'scrollPlaces')),
+    ),
+    h('div', { class: 'friend-toolbar__actions' }, friendActions(params, total)),
+  );
 
 // ---- view ----
 
@@ -476,8 +597,11 @@ export async function render(ctx) {
     );
   }
 
-  // Phones: one column in this order. Wide screens: the aside (list + actions) sits left of the card.
-  const browser = placeBrowser(list, params);
+  // Phones: one column in this order, one card at a time. Wide screens: the aside (list + actions)
+  // sits left of a column of cards you scroll through.
+  const wide = matchMedia(WIDE).matches;
+  const browser = wide ? placeStack(list, params) : placeBrowser(list, params);
+  watchBreakpoint(ctx);
   return h(
     'div',
     { class: 'screen screen--friend layout layout--aside-start' },
@@ -486,14 +610,14 @@ export async function render(ctx) {
       'div',
       { class: 'l-main' },
       ownList && previewNote(ownList.id),
-      friendToolbar(browser.pager, params, total),
+      wide && friendToolbar(browser.pager, params, total),
       browser.main,
     ),
     h(
       'div',
       { class: 'l-aside' },
       browser.list,
-      friendBar(params, total),
+      !wide && friendBar(params, total),
       !ownList && storageOk() && saveArea(list),
       credit(),
     ),
