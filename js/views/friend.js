@@ -2,8 +2,8 @@
 // Phones: one place card at a time, with ‹ › buttons and dots, swipe and arrow keys. The card's
 // head (cover, address, hours) sticks under the top bar while the rest scrolls, and a one-time
 // hint says there's more below.
-// Wide screens: every card in a column you scroll through (one card per stop), with the places
-// listed on the left and ˄ 2 / 5 ˅ above; both follow the scrolling.
+// Wide screens: every card in a column you scroll through (one card per stop, from anywhere on
+// the page), with the places listed on the left and ˄ 2 / 5 ˅ above; both follow the scrolling.
 // The current card lives in the hash as '&i=' (replaceState), so a reload or Back returns to it.
 import { h, icon, toast, copyWithToast, shareOrCopy } from '../ui.js';
 import {
@@ -22,7 +22,7 @@ import {
   placeTile,
 } from '../components.js';
 import { getLang, t, tc, formatRating } from '../i18n.js';
-import { newId, SAMPLE_ID } from '../data.js';
+import { newId, SAMPLE_ID, colorHex } from '../data.js';
 import { getList, importList, storageOk } from '../store.js';
 import { waLink, placeMessage, isSafeMapsUrl } from '../links.js';
 import * as routes from '../routes.js';
@@ -84,6 +84,8 @@ const COMPACT_SHRINK = 88; // px the cover loses when the head is stuck (176 →
 const HINT_KEY = 'jk.hint.scroll';
 const HINT_DELAY_MS = 700;
 const HINT_SHOW_MS = 6000;
+const WHEEL_STEP_PX = 30; // how far a wheel must turn beside the cards before it moves one place
+const WHEEL_QUIET_MS = 180; // a pause this long ends one wheel or touchpad gesture
 
 // ---- card index in the hash ----
 
@@ -379,9 +381,22 @@ function placePicks(places, index, onPick) {
   return { node, setCurrent };
 }
 
+/** True when something under the pointer (or the page itself) can still scroll that way. */
+function scrollsItself(target, dy) {
+  const canMove = (el, height) => (dy < 0 ? el.scrollTop > 0 : el.scrollTop + height < el.scrollHeight - 1);
+  for (let el = target instanceof Element ? target : null; el && el !== document.body; el = el.parentElement) {
+    if (/(auto|scroll)/.test(getComputedStyle(el).overflowY) && el.scrollHeight > el.clientHeight + 1 && canMove(el, el.clientHeight)) {
+      return true;
+    }
+  }
+  return canMove(document.scrollingElement, innerHeight);
+}
+
 /**
  * Every card in one scrolling column; each card fills it and snaps into place, so a scroll is
- * "next place". The list on the left, ˄ 2 / 5 ˅ and '&i=' follow whichever card is in view.
+ * "next place". A wheel or touchpad scroll over the space around the column moves it too, and a
+ * soft glow in the current place's colour follows along. The list on the left, ˄ 2 / 5 ˅ and
+ * '&i=' follow whichever card is in view.
  */
 function placeStack(list, params) {
   const { places, from } = list;
@@ -392,7 +407,10 @@ function placeStack(list, params) {
   let headingTimer = 0;
 
   const cards = places.map((place, i) => placeCard(place, { index: i, total, from }));
-  const stack = h('section', { class: 'card-stack', attrs: { 'aria-label': t(S, 'cards') } }, cards);
+  // Each card sits in a slot that does the snapping, so the card itself is free to animate.
+  const slots = cards.map((card) => h('div', { class: 'card-slot' }, card));
+  const stack = h('section', { class: 'card-stack', attrs: { 'aria-label': t(S, 'cards') } }, slots);
+  const glow = h('div', { class: 'place-glow', attrs: { 'aria-hidden': 'true' } });
   const picks = placePicks(places, index, (i) => show(i));
   const counter = h('span', { class: 'pager__count', attrs: { 'aria-hidden': 'true' } });
   const status = h('p', { class: 'visually-hidden', attrs: { role: 'status' } });
@@ -403,6 +421,7 @@ function placeStack(list, params) {
     index = i;
     counter.textContent = `${index + 1} / ${total}`;
     picks.setCurrent(index);
+    glow.style.setProperty('--glow', colorHex(places[index].color));
     rememberIndex(params, index);
     if (announce) status.textContent = cards[index].getAttribute('aria-label');
   }
@@ -411,8 +430,8 @@ function placeStack(list, params) {
   function cardInView() {
     const top = stack.scrollTop + stack.clientHeight / 3;
     let nearest = 0;
-    cards.forEach((card, i) => {
-      if (card.offsetTop <= top) nearest = i;
+    slots.forEach((slot, i) => {
+      if (slot.offsetTop <= top) nearest = i;
     });
     return nearest;
   }
@@ -430,9 +449,39 @@ function placeStack(list, params) {
     heading = next;
     clearTimeout(headingTimer);
     headingTimer = setTimeout(settle, 1500); // browsers without 'scrollend'
-    stack.scrollTo({ top: cards[next].offsetTop, behavior: reducedMotion() ? 'auto' : 'smooth' });
+    stack.scrollTo({ top: slots[next].offsetTop, behavior: reducedMotion() ? 'auto' : 'smooth' });
     setCurrent(next, true);
   }
+
+  // A wheel turned over the space around the column: one place per turn. A touchpad keeps
+  // sending (smaller) events after the flick, so the next step waits for a short quiet spell.
+  let wheelBusy = false;
+  let wheelSum = 0;
+  let wheelQuiet = 0;
+  function onWheel(event) {
+    if (!stack.isConnected) {
+      removeEventListener('wheel', onWheel);
+      return;
+    }
+    if (event.ctrlKey || stack.contains(event.target) || document.body.classList.contains('has-sheet')) return;
+    const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? innerHeight : 1;
+    const dy = event.deltaY * unit;
+    if (Math.abs(dy) <= Math.abs(event.deltaX * unit) || scrollsItself(event.target, dy)) return;
+
+    event.preventDefault();
+    clearTimeout(wheelQuiet);
+    wheelQuiet = setTimeout(() => {
+      wheelBusy = false;
+      wheelSum = 0;
+    }, WHEEL_QUIET_MS);
+    if (wheelBusy) return;
+    wheelSum += dy;
+    if (Math.abs(wheelSum) < WHEEL_STEP_PX) return;
+    wheelBusy = true;
+    const next = index + Math.sign(wheelSum);
+    if (next >= 0 && next < total) show(next);
+  }
+  addEventListener('wheel', onWheel, { passive: false });
 
   let ticking = false;
   stack.addEventListener(
@@ -469,9 +518,9 @@ function placeStack(list, params) {
 
   setCurrent(index, false);
   // Start on the remembered card once the column is in the page.
-  requestAnimationFrame(() => stack.isConnected && stack.scrollTo({ top: cards[index].offsetTop }));
+  requestAnimationFrame(() => stack.isConnected && stack.scrollTo({ top: slots[index].offsetTop }));
 
-  return { main: [stack, status], list: picks.node, pager };
+  return { main: [glow, stack, status], list: picks.node, pager };
 }
 
 // Crossing the wide-screen breakpoint (window resized) re-renders the view in the other mode.
