@@ -33,6 +33,7 @@ Still stuck? **Surprise me** (*Terserah!* in Bahasa Indonesia) lets the app pick
 - **Discuss this place!** WhatsApp button, plus **Copy** and **Share** for other apps
 - Random pick and side-by-side compare
 - Bahasa Indonesia and English, switchable on every screen
+- A proper laptop layout: two columns, e.g. the list of places beside the selected card
 - Reopen a list from its link, for example after your browser cleared its data
 
 ## Privacy: no accounts, no database

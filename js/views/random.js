@@ -159,7 +159,7 @@ export async function render(ctx) {
 
   return h(
     'div',
-    { class: 'screen' },
+    { class: 'screen screen--narrow' },
     topBar({ back }),
     pageHeader({ title: t(S, 'title'), meta: sourceLine(list), metaIcon: 'list' }),
     card,

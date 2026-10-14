@@ -33,6 +33,7 @@ Masih bingung? Tombol **Terserah!** bakal milihin satu tempat buat kalian. Galau
 - Tombol WhatsApp **Bahas tempat ini!**, plus **Salin** dan **Bagikan** buat app lain
 - Pilih tempat secara acak dan bandingin dua tempat sebelahan
 - Bahasa Indonesia dan Inggris, bisa diganti di tiap layar
+- Tampilan khusus laptop: dua kolom, misalnya daftar tempat di samping kartu yang dipilih
 - Buka lagi daftar dari link-nya, misalnya kalau data browser kamu kehapus
 
 ## Privasi: tanpa akun, tanpa database

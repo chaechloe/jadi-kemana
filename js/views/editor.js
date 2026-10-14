@@ -527,19 +527,23 @@ export async function render(ctx) {
   };
 
   const hasPlaces = list.places.length > 0;
+  // Wide screens: the places on the left, sharing and deleting in a side panel.
   return h(
     'div',
-    { class: ['screen', list.places.length < MIN_TO_SHARE && 'screen--tall-bar'] },
+    { class: ['screen', 'layout', 'layout--aside-end', list.places.length < MIN_TO_SHARE && 'screen--tall-bar'] },
     topBar({ back: routes.home() }),
-    header(state, ctx, saveField, canSave),
     h(
       'div',
-      { class: 'stack mt-20' },
-      !canSave && note('alert-triangle', tc('errStorage'), { danger: true, size: 18 }),
-      changed,
-      hasPlaces ? placeList(ctx, list) : emptyAdd(ctx, list),
+      { class: 'l-main' },
+      header(state, ctx, saveField, canSave),
+      h(
+        'div',
+        { class: 'stack mt-20' },
+        !canSave && note('alert-triangle', tc('errStorage'), { danger: true, size: 18 }),
+        changed,
+        hasPlaces ? placeList(ctx, list) : emptyAdd(ctx, list),
+      ),
     ),
-    deleteButton(ctx, state),
-    shareBar(list),
+    h('div', { class: 'l-aside' }, shareBar(list), deleteButton(ctx, state)),
   );
 }

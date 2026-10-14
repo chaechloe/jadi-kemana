@@ -35,6 +35,7 @@ import * as routes from '../routes.js';
 const S = {
   id: {
     nameLabel: 'Nama tempat',
+    showcase: 'Tampilannya buat teman',
     namePh: 'Contoh: Kedai Kopi Sebelah',
     nameRequired: 'Nama tempatnya diisi dulu ya.',
     linkLabel: 'Link atau info tempat dari Google Maps',
@@ -89,6 +90,7 @@ const S = {
   },
   en: {
     nameLabel: 'Place name',
+    showcase: 'How friends will see it',
     namePh: 'e.g. The Corner Coffee',
     nameRequired: 'Add the place name first.',
     linkLabel: 'Google Maps link or place info',
@@ -314,29 +316,38 @@ const setPressed = (el, on) => el.setAttribute('aria-pressed', String(on));
 // ---- screen ----
 
 function buildForm(f) {
+  // Wide screens: the form on the left; a bigger preview and the save button in a side panel.
   return h(
     'div',
-    { class: 'screen' },
+    { class: 'screen layout layout--aside-end' },
     header(f),
-    preview(f),
     h(
       'div',
-      { class: 'card card--flush' },
-      h(
-        'div',
-        { class: 'card__section' },
-        linkField(f),
-        nameField(f),
-        addressField(f),
-        manualInfo(f),
-        ratingFields(f),
-        hoursField(f),
-        perksField(f),
-      ),
-      h('div', { class: 'card__section' }, lookFields(f), noteField(f)),
+      { class: 'l-main' },
+      preview(f),
+      formCard(f),
+      f.state.editing && deleteButton(f),
     ),
-    f.state.editing && deleteButton(f),
-    bottomBar(primaryButton({ label: tc('savePlace'), onClick: () => save(f) })),
+    h('div', { class: 'l-aside' }, showcase(f), bottomBar(primaryButton({ label: tc('savePlace'), onClick: () => save(f) }))),
+  );
+}
+
+function formCard(f) {
+  return h(
+    'div',
+    { class: 'card card--flush' },
+    h(
+      'div',
+      { class: 'card__section' },
+      linkField(f),
+      nameField(f),
+      addressField(f),
+      manualInfo(f),
+      ratingFields(f),
+      hoursField(f),
+      perksField(f),
+    ),
+    h('div', { class: 'card__section' }, lookFields(f), noteField(f)),
   );
 }
 
@@ -346,16 +357,34 @@ function header(f) {
   return topBar({ start: [close, title] });
 }
 
-/** The S ticket, sticky under the top bar. It repeats the form, so it is hidden from screen readers. */
+/** The place as the preview shows it: a placeholder name until one is typed. */
+const previewPlace = (state) => ({ ...state.place, name: state.place.name.trim() || t(S, 'nameLabel') });
+
+/** The S ticket, sticky under the top bar on phones. It repeats the form, so it is hidden from screen readers. */
 function preview(f) {
   const { state, ui } = f;
   const box = h('div', { class: 'place-form__preview', attrs: { 'aria-hidden': 'true' } });
-  ui.preview = () => {
-    const name = state.place.name.trim() || t(S, 'nameLabel');
-    box.replaceChildren(ticket({ ...state.place, name }, { size: 's' }));
-  };
+  ui.preview = () => box.replaceChildren(ticket(previewPlace(state), { size: 's' }));
   ui.preview();
   return box;
+}
+
+/** Wide screens: a bigger M ticket in the side panel, updated together with the S one. */
+function showcase(f) {
+  const { state, ui } = f;
+  const box = h('div', { class: 'place-form__showcase-ticket' });
+  const small = ui.preview;
+  ui.preview = () => {
+    small();
+    box.replaceChildren(ticket(previewPlace(state), { size: 'm' }));
+  };
+  ui.preview();
+  return h(
+    'div',
+    { class: 'place-form__showcase', attrs: { 'aria-hidden': 'true' } },
+    h('p', { class: 'label' }, t(S, 'showcase')),
+    box,
+  );
 }
 
 // ---- Maps link ----

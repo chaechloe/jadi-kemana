@@ -141,8 +141,9 @@ export function toast(message, { icon: iconName = 'check' } = {}) {
   const region = document.getElementById('toast');
   if (!region) return;
 
+  // Lift the toast above a bottom bar that's pinned to the screen (phones); wide screens lay it out inline.
   const bar = document.querySelector('.bottom-bar');
-  if (bar) region.style.setProperty('--toast-offset', `${bar.getBoundingClientRect().height}px`);
+  if (bar && getComputedStyle(bar).position === 'fixed') region.style.setProperty('--toast-offset', `${bar.getBoundingClientRect().height}px`);
   else region.style.removeProperty('--toast-offset');
 
   region.replaceChildren(h('div', { class: 'toast' }, icon(iconName, { size: 18 }), h('span', {}, message)));

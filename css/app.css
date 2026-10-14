@@ -2969,3 +2969,238 @@ button.row:focus-visible {
 .input-wrap > .icon.star {
   color: var(--star);
 }
+
+/* ==========================================================================
+   Wide screens (laptops and desktops, 960px and up): two columns instead of a
+   stretched phone. Views mark their regions .l-main / .l-aside inside a
+   .layout screen; on phones those are plain blocks in reading order, so
+   everything above applies unchanged below 960px.
+   ========================================================================== */
+
+/* Only shown on wide screens. */
+.place-picks,
+.place-form__showcase {
+  display: none;
+}
+
+@media (min-width: 960px) {
+  :root {
+    --gutter: 32px;
+    --column: 1120px;
+    --bar-h: 0px; /* bottom bars are laid out inline, not pinned */
+  }
+
+  .screen {
+    padding-bottom: var(--sp-48);
+  }
+
+  /* Bottom bars become ordinary blocks inside the layout. */
+  .bottom-bar {
+    position: static;
+    width: auto;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    background: none;
+    box-shadow: none;
+  }
+
+  /* ---- two-column layout ---- */
+  .layout {
+    display: grid;
+    column-gap: var(--sp-40);
+    align-items: start;
+  }
+
+  .layout > .topbar {
+    grid-column: 1 / -1;
+    grid-row: 1;
+  }
+
+  .layout--aside-end {
+    grid-template-columns: minmax(0, 1fr) 340px;
+  }
+
+  .layout--aside-start {
+    grid-template-columns: 340px minmax(0, 1fr);
+  }
+
+  .layout--aside-end > .l-main,
+  .layout--aside-start > .l-aside {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .layout--aside-end > .l-aside,
+  .layout--aside-start > .l-main {
+    grid-column: 2;
+    grid-row: 2;
+  }
+
+  /* The side panel follows the page and scrolls on its own when it's taller than the screen. */
+  .l-aside {
+    position: sticky;
+    top: calc(var(--topbar-h) + var(--sp-16));
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-16);
+    max-height: calc(100dvh - var(--topbar-h) - var(--sp-32));
+    padding: var(--sp-16) 4px var(--sp-16); /* room for focus rings, shadows and enlarged tap areas */
+    margin: 0 -4px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .l-aside > [class*='mt-'] {
+    margin-top: 0;
+  }
+
+  /* ---- friend view: list + card ---- */
+  .place-picks {
+    display: block;
+  }
+
+  .place-picks .row:has(> .row__main[aria-current='true']) {
+    background: var(--brand-soft);
+  }
+
+  .place-picks .row__main[aria-current='true'] .row__title {
+    color: var(--brand-edge);
+  }
+
+  .place-picks .row__meta {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .screen--friend .carousel {
+    margin-right: 0;
+    padding-top: var(--sp-16);
+  }
+
+  .screen--friend .carousel > .placecard {
+    flex: 1 1 auto;
+    max-width: 640px;
+  }
+
+  /* The list replaces the peek, the dots and the ‹ › buttons. */
+  .screen--friend .peek,
+  .screen--friend .dots-nav {
+    display: none;
+  }
+
+  .scroll-hint {
+    bottom: var(--sp-24);
+  }
+
+  /* ---- place form: form + preview ---- */
+  .place-form__preview {
+    display: none;
+  }
+
+  .place-form__showcase {
+    display: block;
+  }
+
+  .place-form__showcase-ticket {
+    margin-top: var(--sp-12);
+  }
+
+  /* ---- welcome: a full-width band, tickets on the right ---- */
+  .screen--welcome {
+    position: relative;
+  }
+
+  .screen--welcome .band {
+    /* full-bleed: edge to edge, content still on the column */
+    margin: 0 calc(50% - 50vw);
+    padding: 0 calc(50vw - 50%) var(--sp-48);
+  }
+
+  .screen--welcome .band__title {
+    max-width: 620px;
+    margin-top: var(--sp-48);
+    font-size: 48px;
+    line-height: 54px;
+  }
+
+  .screen--welcome .band__lead {
+    max-width: 520px;
+    font-size: 17px;
+    line-height: 26px;
+  }
+
+  .screen--welcome .ticket-stack {
+    position: absolute;
+    top: 150px;
+    right: 24px;
+    margin: 0;
+    transform: scale(1.25);
+    transform-origin: top right;
+  }
+
+  .hero__actions {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-16);
+  }
+
+  .hero__actions > .btn {
+    width: auto;
+    padding: 0 var(--sp-32);
+  }
+
+  .hero__actions > .center-row {
+    margin-top: 0;
+  }
+
+  .screen--welcome .section,
+  .screen--welcome > .note {
+    max-width: 640px;
+  }
+
+  /* ---- one-column screens at a readable width ---- */
+  .screen--medium {
+    max-width: 880px;
+  }
+
+  .screen--narrow {
+    max-width: 600px;
+  }
+
+  .screen--medium > .bottom-bar,
+  .screen--narrow > .bottom-bar {
+    margin-top: var(--sp-24);
+  }
+
+  /* ---- bottom sheets become centred dialogs ---- */
+  .sheet {
+    top: 12vh;
+    right: auto;
+    bottom: auto;
+    left: 50%;
+    width: min(480px, calc(100% - 2 * var(--gutter)));
+    max-height: 76vh;
+    padding-bottom: var(--sp-24);
+    border-radius: var(--r-24);
+    box-shadow: var(--e2);
+    transform: translateX(-50%);
+    animation-name: dialog-in;
+  }
+
+  .sheet__grabber {
+    display: none;
+  }
+
+  @keyframes dialog-in {
+    from {
+      opacity: 0;
+      transform: translate(-50%, 12px);
+    }
+    to {
+      opacity: 1;
+      transform: translate(-50%, 0);
+    }
+  }
+}

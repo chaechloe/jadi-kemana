@@ -294,7 +294,7 @@ export async function render(ctx) {
 
   return h(
     'div',
-    { class: 'screen' },
+    { class: 'screen screen--medium' },
     topBar({ back }),
     pageHeader({ title: t(S, 'title') }),
     h('div', { class: 'cmp-pickers mt-20' }, pickerA.node, pickerB.node),

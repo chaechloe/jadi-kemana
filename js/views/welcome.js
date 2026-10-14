@@ -63,7 +63,7 @@ async function exampleHash(sample) {
 function actions(ctx, exampleHref) {
   return h(
     'div',
-    { class: 'mt-32' },
+    { class: 'hero__actions mt-32' },
     primaryButton({ label: t(S, 'cta'), onClick: () => startNewList(ctx) }),
     exampleHref &&
       h('div', { class: 'center-row mt-8' }, h('a', { class: 'btn btn--ghost', attrs: { href: exampleHref } }, h('span', {}, t(S, 'example')))),
@@ -105,7 +105,7 @@ export async function render(ctx) {
 
   return h(
     'div',
-    { class: 'screen screen--nobar' },
+    { class: 'screen screen--nobar screen--welcome' },
     band(),
     ticketStack(sample.places),
     actions(ctx, exampleHref),

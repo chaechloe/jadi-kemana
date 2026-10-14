@@ -1,7 +1,8 @@
 // Friend view (#d=<payload>): what the group sees after opening a shared link.
 // One place card at a time with a peek of the next one, pager dots, swipe and arrow keys
 // (plus ‹ › buttons with a mouse). The card's head (cover, address, hours) sticks under the top bar
-// while the rest scrolls, and a one-time hint says there's more below.
+// while the rest scrolls, and a one-time hint says there's more below. On a wide screen the places
+// are listed beside the card instead (list + card), with the actions under the list.
 // The current card lives in the hash as '&i=' (replaceState), so a reload or Back returns to it.
 import { h, icon, toast, copyWithToast, shareOrCopy } from '../ui.js';
 import {
@@ -16,8 +17,10 @@ import {
   emptyState,
   bottomBar,
   placesLabel,
+  listRow,
+  placeTile,
 } from '../components.js';
-import { getLang, t, tc } from '../i18n.js';
+import { getLang, t, tc, formatRating } from '../i18n.js';
 import { colorHex, newId, SAMPLE_ID } from '../data.js';
 import { getList, importList, storageOk } from '../store.js';
 import { waLink, placeMessage, isSafeMapsUrl } from '../links.js';
@@ -26,6 +29,7 @@ import * as routes from '../routes.js';
 const S = {
   id: {
     cards: 'Kartu tempat',
+    places: 'Daftar tempat',
     card: '{name}, {i} dari {n}',
     next: 'Tempat berikutnya',
     previous: 'Tempat sebelumnya',
@@ -48,6 +52,7 @@ const S = {
   },
   en: {
     cards: 'Place cards',
+    places: 'Places',
     card: '{name}, {i} of {n}',
     next: 'Next place',
     previous: 'Previous place',
@@ -222,7 +227,8 @@ function watchStick(card) {
         head.classList.remove('is-stuck');
         return;
       }
-      if (head.classList.contains('is-stuck')) return;
+      // Wide screens have room for the full cover: it stays sticky but doesn't shrink.
+      if (head.classList.contains('is-stuck') || matchMedia('(min-width: 960px)').matches) return;
       const page = document.documentElement;
       const room = page.scrollHeight - COMPACT_SHRINK - innerHeight - (scrollY + entry.boundingClientRect.top - bar);
       if (room > 24) head.classList.add('is-stuck');
@@ -314,6 +320,21 @@ function placeBrowser(list, params) {
   );
   const status = h('p', { class: 'visually-hidden', attrs: { role: 'status' } });
 
+  // Wide screens: every place as a row beside the card (CSS hides it on phones).
+  const rowMeta = (place) => {
+    const rating = formatRating(place.rating, '', getLang());
+    return [rating && `★ ${rating}`, place.address].filter(Boolean).join(' · ');
+  };
+  const picks = places.map((place, i) =>
+    listRow({ tile: placeTile(place), title: place.name, meta: rowMeta(place), current: i === index, onClick: () => go(i) }),
+  );
+  const pickButtons = picks.map((row) => row.querySelector('.row__main'));
+  const placeList = h(
+    'nav',
+    { class: 'place-picks', attrs: { 'aria-label': t(S, 'places') } },
+    h('ul', { class: 'list-surface', attrs: { role: 'list' } }, picks),
+  );
+
   function go(next) {
     const focusWasInCard = card.contains(document.activeElement);
     index = ((next % total) + total) % total;
@@ -324,6 +345,10 @@ function placeBrowser(list, params) {
     watchStick(card);
     if (peek) peek.replaceChildren(peekCard());
     dots.forEach((dot, i) => dot.setAttribute('aria-current', String(i === index)));
+    pickButtons.forEach((button, i) => {
+      if (i === index) button.setAttribute('aria-current', 'true');
+      else button.removeAttribute('aria-current');
+    });
 
     rememberIndex(params, index);
     revealCard(carousel);
@@ -356,7 +381,7 @@ function placeBrowser(list, params) {
       iconButton({ icon: 'chevron-right', label: t(S, 'next'), onClick: () => go(index + 1) }),
     );
 
-  return [carousel, nav, status, scrollHint(card)];
+  return { main: [carousel, nav, status, scrollHint(card)], list: placeList };
 }
 
 /** "Simpan ke HP ini" for a list this phone doesn't have yet; afterwards (or if it has it) a link to open it. */
@@ -446,14 +471,31 @@ export async function render(ctx) {
   const ownList = params.from ? getList(params.from) : null;
   const total = list.places.length;
 
+  if (!total) {
+    return h(
+      'div',
+      { class: 'screen screen--friend screen--nobar' },
+      topBar({ start: listHeading(list) }),
+      ownList && previewNote(ownList.id),
+      emptyView(ownList),
+      credit(),
+    );
+  }
+
+  // Phones: one column in this order. Wide screens: the aside (list + actions) sits left of the card.
+  const browser = placeBrowser(list, params);
   return h(
     'div',
-    { class: ['screen', 'screen--friend', !total && 'screen--nobar'] },
+    { class: 'screen screen--friend layout layout--aside-start' },
     topBar({ start: listHeading(list) }),
-    ownList && previewNote(ownList.id),
-    total ? placeBrowser(list, params) : emptyView(ownList),
-    total > 0 && !ownList && storageOk() && saveArea(list),
-    credit(),
-    total > 0 && friendBar(params, total),
+    h('div', { class: 'l-main' }, ownList && previewNote(ownList.id), browser.main),
+    h(
+      'div',
+      { class: 'l-aside' },
+      browser.list,
+      friendBar(params, total),
+      !ownList && storageOk() && saveArea(list),
+      credit(),
+    ),
   );
 }

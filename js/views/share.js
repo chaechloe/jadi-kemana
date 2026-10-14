@@ -219,14 +219,18 @@ export async function render(ctx) {
   const url = listUrl(payload);
   const message = listMessage(list, url, lang);
 
+  // Wide screens: the chat preview on the left, what fits where and the buttons beside it.
   return h(
     'div',
-    { class: 'screen screen--nobar' },
+    { class: 'screen screen--nobar layout layout--aside-end' },
     topBar({ back }),
-    pageHeader(heading(list)),
-    chatPreview(message, url, lang),
-    fitNotes(url.length, lang),
-    actions(list.id, { url, message, payload }),
-    note('bookmark', t(S, 'backup'), { size: 14, class: 'mt-24' }),
+    h('div', { class: 'l-main' }, pageHeader(heading(list)), chatPreview(message, url, lang)),
+    h(
+      'div',
+      { class: 'l-aside' },
+      fitNotes(url.length, lang),
+      actions(list.id, { url, message, payload }),
+      note('bookmark', t(S, 'backup'), { size: 14, class: 'mt-24' }),
+    ),
   );
 }
