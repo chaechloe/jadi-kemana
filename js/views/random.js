@@ -1,6 +1,17 @@
-// Random pick (#d=…&v=random): "can't decide? I'll pick", dealt as a large ticket.
+// Random pick (#d=…&v=random): "can't decide? I'll pick", dealt as a large ticket onto a little
+// stage, with the place's address, perks and note under it (phones) or beside it (wide screens).
 import { h, icon } from '../ui.js';
-import { topBar, pageHeader, ticket, sendButton, deadEnd, bottomBar, hidden } from '../components.js';
+import {
+  topBar,
+  pageHeader,
+  ticket,
+  facilitiesList,
+  noteBlock,
+  sendButton,
+  deadEnd,
+  bottomBar,
+  hidden,
+} from '../components.js';
 import { getLang, t, tc } from '../i18n.js';
 import { waLink, randomMessage } from '../links.js';
 import * as routes from '../routes.js';
@@ -10,6 +21,7 @@ const S = {
     title: 'Terserah? Oke, aku yang milih!',
     from: 'Dipilih dari {n} tempat di "{title}"',
     fromOne: 'Cuma ada 1 tempat di "{title}"',
+    sticker: 'Pilihanku!',
     address: 'Alamat',
     another: 'Pilih yang lain',
     details: 'Lihat detailnya',
@@ -21,6 +33,7 @@ const S = {
     title: "Can't decide? Fine, I'll pick!",
     from: 'Picked from the {n} places in "{title}"',
     fromOne: 'There\'s only 1 place in "{title}"',
+    sticker: 'My pick!',
     address: 'Address',
     another: 'Pick another',
     details: 'See details',
@@ -33,6 +46,8 @@ const S = {
 // The pick lives in this history entry, so a language switch (which re-renders) keeps it,
 // while every new visit to this screen starts with a fresh random pick.
 const STATE_KEY = 'jkRandomPick';
+
+const decorative = { 'aria-hidden': 'true' };
 
 // ---- remembered pick ----
 
@@ -75,27 +90,38 @@ function randomIndex(count, exclude = -1) {
 // ---- pieces ----
 
 function pickTicket(place) {
-  const node = ticket(place, { size: 'l' });
-  node.classList.add('ticket--tilt', 'mt-24');
+  const node = ticket(place, { size: 'l', notchBg: 'var(--brand-soft)' });
+  node.classList.add('ticket--tilt');
   return node;
 }
 
-/** Restarts the deal-in animation (the CSS skips it under reduced motion). */
-function dealIn(node) {
-  node.classList.remove('ticket--deal');
+/** Restarts a one-off CSS animation (the CSS skips them under reduced motion). */
+function replay(node, className) {
+  node.classList.remove(className);
   void node.offsetWidth; // flush styles so adding the class again starts a new animation
-  node.classList.add('ticket--deal');
+  node.classList.add(className);
 }
 
 function addressLine(place) {
   if (!place.address) return null;
   return h(
     'p',
-    { class: 'meta-line meta-line--ground mt-24' },
+    { class: 'meta-line' },
     icon('map-pin', { size: 14 }),
     hidden(`${t(S, 'address')}: `),
     h('span', { class: 'meta-line__text' }, place.address),
   );
+}
+
+/** Address, perks and the coordinator's note in one card; null when the place has none of them. */
+function pickDetails(place, from) {
+  const facilities = facilitiesList(place);
+  const parts = [
+    addressLine(place),
+    facilities && h('div', {}, h('h3', { class: 'pick__heading' }, tc('perksTitle')), facilities),
+    noteBlock(place, from),
+  ].filter(Boolean);
+  return parts.length ? h('div', { class: 'pick__details' }, parts) : null;
 }
 
 function sourceLine(list) {
@@ -120,10 +146,12 @@ export async function render(ctx) {
 
   const sendHref = (place) => waLink(randomMessage(place, getLang()));
   const detailsHref = (i) => routes.friend(payload, { from, i });
+  const detailsOf = (place) => [pickDetails(place, list.from)].filter(Boolean);
 
   let card = pickTicket(places[index]);
   card.classList.add('ticket--deal'); // not in the document yet: it deals in once inserted
-  const addressSlot = h('div', {}, addressLine(places[index]));
+  const sticker = h('span', { class: 'pick__sticker', attrs: decorative }, icon('star-filled', { size: 14 }), t(S, 'sticker'));
+  const detailsSlot = h('div', { class: 'pick__slot' }, detailsOf(places[index]));
   const status = h('p', { class: 'visually-hidden', attrs: { role: 'status', 'aria-live': 'polite' } });
   const details = h('a', { class: 'btn btn--ghost', attrs: { href: detailsHref(index) } }, t(S, 'details'));
   const send = sendButton({ href: sendHref(places[index]), label: tc('send') });
@@ -136,9 +164,10 @@ export async function render(ctx) {
     const fresh = pickTicket(place);
     card.replaceWith(fresh);
     card = fresh;
-    dealIn(card);
+    replay(card, 'ticket--deal');
+    replay(sticker, 'pick__sticker--pop');
 
-    addressSlot.replaceChildren(...[addressLine(place)].filter(Boolean));
+    detailsSlot.replaceChildren(...detailsOf(place));
     send.setAttribute('href', sendHref(place));
     details.setAttribute('href', detailsHref(index));
     status.textContent = t(S, 'picked', { name: place.name });
@@ -157,15 +186,24 @@ export async function render(ctx) {
       h('span', {}, t(S, 'another')),
     );
 
+  // The bottom bar sits with the other actions: pinned to the bottom on phones (fixed), and an
+  // ordinary block in the side column on wide screens.
   return h(
     'div',
-    { class: 'screen screen--narrow' },
+    { class: 'screen screen--medium screen--random' },
     topBar({ back }),
     pageHeader({ title: t(S, 'title'), meta: sourceLine(list), metaIcon: 'list' }),
-    card,
-    addressSlot,
-    h('div', { class: 'stack stack--8 mt-24' }, another, h('div', { class: 'center-row' }, details)),
+    h(
+      'div',
+      { class: 'pick mt-20' },
+      h('div', { class: 'pick__stage' }, card, sticker),
+      h(
+        'div',
+        { class: 'pick__side' },
+        detailsSlot,
+        h('div', { class: 'pick__actions' }, bottomBar(send), another, h('div', { class: 'center-row' }, details)),
+      ),
+    ),
     status,
-    bottomBar(send),
   );
 }

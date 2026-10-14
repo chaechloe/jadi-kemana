@@ -116,6 +116,17 @@ function watchScroll(bar) {
  */
 export function topBar({ back = null, backLabel, start, end, band = false } = {}) {
   const lead = [];
+  // Wide screens show the logo on every screen (a link home); CSS hides it on phones.
+  if (back || start) {
+    lead.push(
+      h(
+        'a',
+        { class: 'topbar__brand', attrs: { href: '#/' } },
+        h('img', { attrs: { src: 'assets/icons/logo.svg', alt: '', width: 28, height: 28 } }),
+        h('span', { class: 'wordmark' }, tc('appName')),
+      ),
+    );
+  }
   if (back) lead.push(iconButton({ icon: 'arrow-left', label: backLabel || tc('back'), href: back }));
   if (start) lead.push(start);
   else if (!back) lead.push(h('span', { class: 'wordmark' }, tc('appName')));

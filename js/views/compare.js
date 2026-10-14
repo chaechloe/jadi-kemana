@@ -1,4 +1,6 @@
 // Compare (#d=…&v=compare): two places side by side, then ask the group "A or B?".
+// The table's first row holds the two place heads; each one is also its picker (a native <select>
+// laid over it), and the row stays pinned under the top bar while the rows scroll beneath it.
 import { h, icon, uid, copyWithToast, shareOrCopy } from '../ui.js';
 import { topBar, pageHeader, sendButton, ghostRow, deadEnd, bottomBar, hidden } from '../components.js';
 import { getLang, t, tc, formatHours, formatRating } from '../i18n.js';
@@ -9,6 +11,7 @@ import * as routes from '../routes.js';
 const S = {
   id: {
     title: 'Bandingin',
+    hint: 'Ganti tempatnya lewat nama di tabel',
     placeA: 'Tempat A',
     placeB: 'Tempat B',
     badgeA: 'A',
@@ -16,6 +19,8 @@ const S = {
     same: 'Pilih dua tempat yang beda ya',
     tableLabel: 'Perbandingan dua tempat',
     infoCol: 'Info',
+    groupInfo: 'Info',
+    groupPerks: 'Fasilitas',
     rating: 'Rating',
     hours: 'Jam buka',
     address: 'Alamat',
@@ -32,6 +37,7 @@ const S = {
   },
   en: {
     title: 'Compare',
+    hint: 'Switch places with the names in the table',
     placeA: 'Place A',
     placeB: 'Place B',
     badgeA: 'A',
@@ -39,6 +45,8 @@ const S = {
     same: 'Pick two different places',
     tableLabel: 'Comparing two places',
     infoCol: 'Info',
+    groupInfo: 'Info',
+    groupPerks: 'Perks',
     rating: 'Rating',
     hours: 'Hours',
     address: 'Address',
@@ -82,34 +90,43 @@ function rememberPair(pair) {
   }
 }
 
-// ---- pickers ----
+// ---- column heads (also the pickers) ----
 
-function placePicker({ id, label, places, value, onChange }) {
+/**
+ * A column head in the place's colour: badge, emoji, name and a chevron, with an invisible <select>
+ * stretched over it, so a tap opens the phone's own list. set(i) shows place i. The head stays in
+ * the page while the table changes, so the select never loses focus.
+ */
+function headPicker({ badge, label, places, value, onChange }) {
+  const id = uid('cmp-pick');
+  const tile = h('span', { class: 'tile tile--glass cmp-pick__tile', attrs: decorative });
+  const name = h('span', { class: 'cmp-pick__name' });
   const select = h(
     'select',
-    { class: 'select', id, on: { change: onChange } },
+    { class: 'cmp-pick__select', id, on: { change: onChange } },
     places.map((place, i) => h('option', { attrs: { value: String(i) } }, place.name)),
   );
-  select.value = String(value);
   const node = h(
     'div',
-    {},
-    h('label', { class: 'label', attrs: { for: id } }, label),
-    h('div', { class: 'input-wrap input-wrap--select' }, select, icon('chevron-down', { size: 18 })),
+    { class: 'cmp-pick', attrs: { role: 'columnheader' } },
+    h('span', { class: 'cmp-pick__badge', attrs: decorative }, badge),
+    tile,
+    name,
+    icon('chevron-down', { size: 16 }),
+    h('label', { class: 'visually-hidden', attrs: { for: id } }, label),
+    select,
   );
-  return { node, select };
-}
 
-// ---- place headers ----
+  function set(index) {
+    const place = places[index];
+    select.value = String(index);
+    node.style.setProperty('--place', colorHex(place.color));
+    tile.textContent = place.emoji || EMOJIS[0];
+    name.textContent = place.name;
+  }
 
-function placeHead(place, badge, label) {
-  return h(
-    'div',
-    { class: 'cmp-head', style: { '--place': colorHex(place.color) } },
-    h('span', { class: 'tile tile--glass', attrs: decorative }, place.emoji || EMOJIS[0]),
-    h('span', { class: 'badge cmp-head__badge', attrs: decorative }, badge),
-    h('h2', { class: 'cmp-head__name' }, hidden(`${label}: `), place.name),
-  );
+  set(value);
+  return { node, select, set };
 }
 
 // ---- table cells ----
@@ -144,7 +161,7 @@ function hoursCell(place) {
 
 function textCell(text, { clamp = false } = {}) {
   if (!text) return dashCell(t(S, 'unknown'));
-  return cell(clamp ? h('span', { class: 'clamp-3' }, text) : text, 'plain');
+  return cell(h('span', { class: clamp ? 'clamp-3' : 'cmp-row__text' }, text), 'plain');
 }
 
 function hasCell(has) {
@@ -162,9 +179,9 @@ function row(label, cells, variant) {
   );
 }
 
-/** A facility label: an 18px icon flowing inline with the text. */
+/** A facility label: an icon flowing inline with the text. */
 function perkLabel(iconName, text) {
-  return h('span', { class: 'cmp-row__label-text' }, icon(iconName, { size: 18 }), text);
+  return h('span', { class: 'cmp-row__label-text' }, icon(iconName, { size: 16 }), text);
 }
 
 function perkRows(a, b) {
@@ -190,24 +207,30 @@ function customRows(a, b) {
   );
 }
 
-function comparisonTable(a, b) {
+/** A titled group of rows ("Info", "Fasilitas"); null when it has no rows. */
+function group(title, rows) {
+  if (!rows.length) return null;
   return h(
     'div',
-    { class: 'cmp-table mt-12', attrs: { role: 'table', 'aria-label': t(S, 'tableLabel') } },
-    // Column headers for screen readers; the coloured headers above show them visually.
+    { class: 'cmp-group', attrs: { role: 'rowgroup' } },
     h(
       'div',
-      { class: 'visually-hidden', attrs: { role: 'row' } },
-      h('span', { attrs: { role: 'columnheader' } }, t(S, 'infoCol')),
-      h('span', { attrs: { role: 'columnheader' } }, `${t(S, 'placeA')}: ${a.name}`),
-      h('span', { attrs: { role: 'columnheader' } }, `${t(S, 'placeB')}: ${b.name}`),
+      { class: 'cmp-group__title', attrs: { role: 'row' } },
+      h('span', { attrs: { role: 'cell', 'aria-colspan': '3' } }, title),
     ),
+    rows,
+  );
+}
+
+function tableGroups(a, b) {
+  const info = [
     row(t(S, 'rating'), [ratingCell(a, b), ratingCell(b, a)]),
     row(t(S, 'hours'), [hoursCell(a), hoursCell(b)]),
     row(t(S, 'address'), [textCell(a.address, { clamp: true }), textCell(b.address, { clamp: true })], 'top'),
-    perkRows(a, b),
-    customRows(a, b),
-    row(t(S, 'note'), [textCell(a.note), textCell(b.note)], 'top'),
+    (a.note || b.note) && row(t(S, 'note'), [textCell(a.note), textCell(b.note)], 'top'),
+  ].filter(Boolean);
+  return [group(t(S, 'groupInfo'), info), group(t(S, 'groupPerks'), [...perkRows(a, b), ...customRows(a, b)])].filter(
+    Boolean,
   );
 }
 
@@ -224,22 +247,40 @@ export async function render(ctx) {
   const errorId = uid('cmp-error');
   const message = () => compareMessage(places[indexA], places[indexB], getLang());
 
-  const pickerA = placePicker({
-    id: uid('cmp-a'),
-    label: t(S, 'placeA'),
-    places,
-    value: indexA,
-    onChange: (event) => choose(Number(event.target.value), indexB),
-  });
-  const pickerB = placePicker({
-    id: uid('cmp-b'),
-    label: t(S, 'placeB'),
-    places,
-    value: indexB,
-    onChange: (event) => choose(indexA, Number(event.target.value)),
-  });
+  const heads = [
+    headPicker({
+      badge: t(S, 'badgeA'),
+      label: t(S, 'placeA'),
+      places,
+      value: indexA,
+      onChange: (event) => choose(Number(event.target.value), indexB),
+    }),
+    headPicker({
+      badge: t(S, 'badgeB'),
+      label: t(S, 'placeB'),
+      places,
+      value: indexB,
+      onChange: (event) => choose(indexA, Number(event.target.value)),
+    }),
+  ];
 
-  const content = h('div');
+  // The corner cell names the label column for screen readers; on screen it stays empty.
+  const headRow = h(
+    'div',
+    { class: 'cmp-row cmp-row--head', attrs: { role: 'row' } },
+    h('div', { class: 'cmp-row__label cmp-corner', attrs: { role: 'columnheader' } }, hidden(t(S, 'infoCol'))),
+    heads.map((head) => head.node),
+  );
+  const body = h('div', { class: 'cmp-body' });
+  const table = h(
+    'div',
+    { class: 'cmp-table mt-16', attrs: { role: 'table', 'aria-label': t(S, 'tableLabel') } },
+    headRow,
+    body,
+  );
+
+  const errorSlot = h('div');
+  const actionsSlot = h('div');
   const bar = bottomBar();
   const toasts = { done: t(S, 'copied'), failed: t(S, 'copyFailed') };
 
@@ -253,39 +294,38 @@ export async function render(ctx) {
     return ghosts;
   }
 
-  // Rebuilds everything below the pickers; the pickers stay put so focus is never lost.
+  // Rebuilds the rows, the error and the actions; the heads (and their selects) stay put.
   function update() {
-    const a = places[indexA];
-    const b = places[indexB];
     const same = indexA === indexB;
 
-    for (const { select } of [pickerA, pickerB]) {
+    for (const { select } of heads) {
       select.setAttribute('aria-invalid', String(same));
       if (same) select.setAttribute('aria-describedby', errorId);
       else select.removeAttribute('aria-describedby');
     }
 
-    content.replaceChildren(
-      ...[
-        same &&
-          h(
-            'p',
-            { class: 'helper helper--error', id: errorId, attrs: { role: 'alert' } },
-            icon('alert-circle', { size: 14 }),
-            h('span', {}, t(S, 'same')),
-          ),
-        h('div', { class: 'cmp-heads mt-12' }, placeHead(a, t(S, 'badgeA'), t(S, 'placeA')), placeHead(b, t(S, 'badgeB'), t(S, 'placeB'))),
-        comparisonTable(a, b),
-        actions(same),
-      ].filter(Boolean),
+    errorSlot.replaceChildren(
+      ...(same
+        ? [
+            h(
+              'p',
+              { class: 'helper helper--error mt-12', id: errorId, attrs: { role: 'alert' } },
+              icon('alert-circle', { size: 14 }),
+              h('span', {}, t(S, 'same')),
+            ),
+          ]
+        : []),
     );
-
+    body.replaceChildren(...tableGroups(places[indexA], places[indexB]));
+    actionsSlot.replaceChildren(actions(same));
     bar.replaceChildren(sendButton({ href: same ? null : waLink(message()), label: t(S, 'send') }));
   }
 
   function choose(nextA, nextB) {
     indexA = nextA;
     indexB = nextB;
+    heads[0].set(indexA);
+    heads[1].set(indexB);
     rememberPair([indexA, indexB]);
     update();
   }
@@ -294,11 +334,12 @@ export async function render(ctx) {
 
   return h(
     'div',
-    { class: 'screen screen--medium' },
+    { class: 'screen screen--medium screen--compare' },
     topBar({ back }),
-    pageHeader({ title: t(S, 'title') }),
-    h('div', { class: 'cmp-pickers mt-20' }, pickerA.node, pickerB.node),
-    content,
+    pageHeader({ title: t(S, 'title'), meta: t(S, 'hint'), metaIcon: 'arrows-shuffle' }),
+    errorSlot,
+    table,
+    actionsSlot,
     bar,
   );
 }

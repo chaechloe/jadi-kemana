@@ -50,6 +50,8 @@ const S = {
     add: 'Tambah',
     emptyLine: 'Belum ada tempat. Tempel link Google Maps buat mulai.',
     ctaHelper: 'Tambah minimal 2 tempat dulu',
+    shareTitle: 'Siap dibagikan?',
+    shareText: 'Kirim satu link ke grup, teman-teman tinggal buka.',
     moveTitle: 'Pindahin {name}',
     position: 'Sekarang di urutan {n} dari {total}',
     moveUp: 'Pindah ke atas',
@@ -86,6 +88,8 @@ const S = {
     add: 'Add',
     emptyLine: 'No places yet. Start by pasting a Google Maps link.',
     ctaHelper: 'Add at least 2 places first',
+    shareTitle: 'Ready to share?',
+    shareText: 'Send one link to the group; friends just open it.',
     moveTitle: 'Move {name}',
     position: 'Now at position {n} of {total}',
     moveUp: 'Move up',
@@ -530,7 +534,7 @@ export async function render(ctx) {
   // Wide screens: the places on the left, sharing and deleting in a side panel.
   return h(
     'div',
-    { class: ['screen', 'layout', 'layout--aside-end', list.places.length < MIN_TO_SHARE && 'screen--tall-bar'] },
+    { class: ['screen', 'screen--editor', 'layout', 'layout--aside-end', list.places.length < MIN_TO_SHARE && 'screen--tall-bar'] },
     topBar({ back: routes.home() }),
     h(
       'div',
@@ -544,6 +548,13 @@ export async function render(ctx) {
         hasPlaces ? placeList(ctx, list) : emptyAdd(ctx, list),
       ),
     ),
-    h('div', { class: 'l-aside' }, shareBar(list), deleteButton(ctx, state)),
+    h(
+      'div',
+      { class: 'l-aside' },
+      // Wide screens only (CSS): a heading for the side panel.
+      h('div', { class: 'aside-intro' }, h('h2', { class: 'aside-intro__title' }, t(S, 'shareTitle')), h('p', { class: 'muted' }, t(S, 'shareText'))),
+      shareBar(list),
+      deleteButton(ctx, state),
+    ),
   );
 }

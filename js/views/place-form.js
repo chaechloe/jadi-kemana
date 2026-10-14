@@ -319,7 +319,7 @@ function buildForm(f) {
   // Wide screens: the form on the left; a bigger preview and the save button in a side panel.
   return h(
     'div',
-    { class: 'screen layout layout--aside-end' },
+    { class: 'screen screen--form layout layout--aside-end' },
     header(f),
     h(
       'div',
@@ -532,7 +532,7 @@ function nameField(f) {
   };
   ui.nameMeta();
 
-  return h('div', { class: 'field' }, labelRow(label('pf-name', t(S, 'nameLabel')), tag), input, error);
+  return h('div', { class: 'field field--half' }, labelRow(label('pf-name', t(S, 'nameLabel')), tag), input, error);
 }
 
 function addressField(f) {
@@ -563,7 +563,7 @@ function addressField(f) {
   };
   ui.addressMeta();
 
-  return h('div', { class: 'field' }, labelRow(label('pf-address', t(S, 'addrLabel')), tag), input, helper);
+  return h('div', { class: 'field field--half' }, labelRow(label('pf-address', t(S, 'addrLabel')), tag), input, helper);
 }
 
 function addressNote(state) {
@@ -631,7 +631,7 @@ function ratingFields(f) {
 
   return h(
     'div',
-    { class: 'field-pair mt-8' },
+    { class: 'field-pair field--half mt-8' },
     h(
       'div',
       {},
@@ -682,7 +682,7 @@ function hoursField(f) {
 
   return h(
     'div',
-    { class: 'field mt-20' },
+    { class: 'field field--half mt-20' },
     label('pf-hours', t(S, 'hoursLabel'), { id: 'pf-hours-label' }),
     input,
     h('div', { class: 'chips mt-8', attrs: { role: 'group', 'aria-labelledby': 'pf-hours-label' } }, chips),
