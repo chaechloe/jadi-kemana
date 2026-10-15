@@ -1716,6 +1716,35 @@ button.row:focus-visible {
   margin-top: var(--sp-20);
 }
 
+/* "Lihat menu · drive.google.com": the menu link sits right above the send button. */
+.placecard__body > .menu-link {
+  margin-top: var(--sp-20);
+}
+
+.placecard__body > .menu-link + .btn--go {
+  margin-top: var(--sp-8);
+}
+
+.menu-link {
+  min-width: 0;
+}
+
+/* Where the link goes, so nobody taps into the unknown. */
+.menu-link__host {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-2);
+}
+
+.menu-link__host::before {
+  content: '·';
+  margin-right: var(--sp-8);
+}
+
 .placecard__body > .ghost-row {
   margin-top: var(--sp-8);
 }
@@ -3615,9 +3644,14 @@ button.row:focus-visible {
     margin-bottom: var(--sp-20);
   }
 
-  /* The send button sits at the bottom, level with the cover's end. */
-  .screen--friend .placecard__body > .btn--go {
+  /* The send button (and the menu link above it) sit at the bottom, level with the cover's end. */
+  .screen--friend .placecard__body > .btn--go,
+  .screen--friend .placecard__body > .menu-link {
     margin-top: auto;
+  }
+
+  .screen--friend .placecard__body > .menu-link + .btn--go {
+    margin-top: var(--sp-8);
   }
 
   /* ---- place form: two-column fields + a live preview ---- */

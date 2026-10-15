@@ -7,6 +7,7 @@ import {
   ticket,
   facilitiesList,
   noteBlock,
+  menuButton,
   sendButton,
   deadEnd,
   bottomBar,
@@ -113,13 +114,14 @@ function addressLine(place) {
   );
 }
 
-/** Address, perks and the coordinator's note in one card; null when the place has none of them. */
+/** Address, perks, the coordinator's note and the menu in one card; null when the place has none. */
 function pickDetails(place, from) {
   const facilities = facilitiesList(place);
   const parts = [
     addressLine(place),
     facilities && h('div', {}, h('h3', { class: 'pick__heading' }, tc('perksTitle')), facilities),
     noteBlock(place, from),
+    menuButton(place.menu),
   ].filter(Boolean);
   return parts.length ? h('div', { class: 'pick__details' }, parts) : null;
 }

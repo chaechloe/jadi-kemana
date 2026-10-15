@@ -13,6 +13,7 @@ import {
   placeMetaLines,
   facilitiesList,
   noteBlock,
+  menuButton,
   sendButton,
   ghostRow,
   emptyState,
@@ -153,6 +154,7 @@ function placeCard(place, { index, total, from }) {
       { class: 'placecard__body' },
       facilities && [h('h3', { class: 'placecard__heading' }, tc('perksTitle')), facilities],
       noteBlock(place, from),
+      menuButton(place.menu),
       sendButton({ href: waLink(message), label: tc('discuss'), size: 'md' }),
       ghostRow([
         maps && { icon: 'map-pin', label: tc('mapsShort'), ariaLabel: tc('openMaps'), href: maps },
