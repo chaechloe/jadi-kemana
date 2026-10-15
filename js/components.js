@@ -22,8 +22,8 @@ const S = {
     language: 'Language',
     address: 'Address',
     ratedLabel: 'Rated',
-    perksOne: '{n} perk',
-    perksMany: '{n} perks',
+    perksOne: '{n} facility',
+    perksMany: '{n} facilities',
     hours: 'Hours',
     rating: 'Rated {r}',
     ratingCount: 'Rated {r} across {n} reviews',
@@ -57,7 +57,7 @@ function placeOverline(place) {
   return parts.length === 2 ? parts[1] : '';
 }
 
-/** Splits formatRating() output: '4.9 (1.146)' → { value: '4.9', count: '(1.146)', label }. */
+/** Splits formatRating() output: '4,9 (1.146)' → { value: '4,9', count: '(1.146)', label }. */
 function ratingParts(place) {
   const text = formatRating(place.rating, place.ratingCount, getLang());
   if (!text) return null;
@@ -377,7 +377,8 @@ export function noteBlock(place, from) {
  */
 export function sendButton({ href, label, size = 'lg' } = {}) {
   const classes = ['btn', 'btn--go', 'btn--block', size === 'md' ? 'btn--md' : 'btn--lg'];
-  const content = [icon('message-circle', { size: 22 }), h('span', {}, label)];
+  // These buttons always open WhatsApp: its glyph says so, and screen readers hear it.
+  const content = [icon('brand-whatsapp', { size: 22 }), h('span', {}, label), hidden(' (WhatsApp)')];
   if (!href) return h('button', { class: classes, attrs: { type: 'button', disabled: true } }, content);
   return h('a', { class: classes, attrs: { href, target: '_blank', rel: 'noopener' } }, content);
 }

@@ -224,3 +224,15 @@ test('a write that does not reach storage is reported, and the app is told', () 
   store.createList({ title: 'Lega lagi' });
   assert.equal(store.savedToDevice(), true);
 });
+
+test('dropUntouchedLists removes started-and-left lists only', () => {
+  const empty = store.createList();
+  const named = store.createList({ title: 'Nongkrong Sabtu' });
+  const sender = store.createList({ from: 'Rani' });
+  const withPlace = store.createList();
+  store.upsertPlace(withPlace.id, place('Kopi A'));
+  store.dropUntouchedLists();
+  const ids = store.getLists().map((l) => l.id);
+  assert.equal(ids.includes(empty.id), false);
+  for (const kept of [named, sender, withPlace]) assert.ok(ids.includes(kept.id));
+});

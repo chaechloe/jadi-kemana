@@ -3,16 +3,16 @@
 import { h, icon, openSheet, copyWithToast, shareOrCopy, uid } from '../ui.js';
 import { topBar, pageHeader, sendButton, ghostRow, deadEnd, note, placesLabel } from '../components.js';
 import { getLang, t, tc } from '../i18n.js';
-import { getList, markShared } from '../store.js';
+import { getList, markShared, saveList } from '../store.js';
 import { encodeList, listUrl } from '../codec.js';
 import { waLink, listMessage } from '../links.js';
+import { LIMITS } from '../data.js';
 import * as routes from '../routes.js';
 
 const S = {
   id: {
     title: 'Bagikan ke grup',
     previewAria: 'Contoh tampilan pesan di grup',
-    previewDesc: 'Kumpulin tempat, bahas bareng di grup.',
     fitsAll: 'Muat di WhatsApp, LINE, Telegram, sampai DM Instagram · {n} karakter',
     fitsChat: 'Muat di WhatsApp, LINE, Telegram · {n} karakter',
     fitsWhatsApp: 'Cuma muat di WhatsApp · {n} karakter',
@@ -27,11 +27,17 @@ const S = {
     messageLabel: 'Pesan buat grup',
     emptyText: 'Daftarnya masih kosong. Tambah tempat dulu, baru bagikan ke grup ya.',
     backToList: 'Balik ke daftar',
+    namesTitle: 'Biar grupnya tahu ini daftar apa',
+    namesHint: 'Boleh dilewati, tapi pesannya jadi lebih jelas.',
+    listName: 'Nama daftar',
+    listNamePh: 'Contoh: Nongkrong Sabtu',
+    yourName: 'Nama kamu',
+    yourNamePh: 'Contoh: Rani',
+    saveNames: 'Simpan',
   },
   en: {
     title: 'Share with the group',
     previewAria: 'Preview of the group message',
-    previewDesc: 'Collect places, talk them over in the group.',
     fitsAll: 'Fits in WhatsApp, LINE, Telegram and Instagram DMs · {n} characters',
     fitsChat: 'Fits in WhatsApp, LINE and Telegram · {n} characters',
     fitsWhatsApp: 'Only fits in WhatsApp · {n} characters',
@@ -46,6 +52,13 @@ const S = {
     messageLabel: 'Message for the group',
     emptyText: 'This list is empty. Add a place first, then share it with the group.',
     backToList: 'Back to the list',
+    namesTitle: 'So the group knows what this list is',
+    namesHint: 'You can skip this, but it makes the message clearer.',
+    listName: 'List name',
+    listNamePh: 'e.g. Saturday hangout',
+    yourName: 'Your name',
+    yourNamePh: 'e.g. Rani',
+    saveNames: 'Save',
   },
 };
 
@@ -84,23 +97,24 @@ function heading(list) {
 
 // ---- chat preview ----
 
+// The preview chat apps build from index.html's og: tags, so this mock can't drift from it: the
+// same image (from this site, which the CSP allows) and the same title and description.
+const ogTag = (name) => document.querySelector(`meta[property="og:${name}"]`)?.content ?? '';
+
 function previewCard() {
   const host = location.host;
   return h(
     'div',
     { class: 'preview-card' },
-    h(
-      'div',
-      { class: 'preview-card__thumb', attrs: { 'aria-hidden': 'true' } },
-      h('span', { class: 'preview-card__mini preview-card__mini--a' }),
-      h('span', { class: 'preview-card__mini preview-card__mini--b' }),
-      icon('map-pin', { size: 22 }),
-    ),
+    h('img', {
+      class: 'preview-card__image',
+      attrs: { src: 'assets/og-image.png', alt: '', width: 1200, height: 630, decoding: 'async' },
+    }),
     h(
       'div',
       { class: 'preview-card__text' },
-      h('p', { class: 'preview-card__title' }, tc('appName')),
-      h('p', { class: 'preview-card__desc' }, t(S, 'previewDesc')),
+      h('p', { class: 'preview-card__title' }, ogTag('title') || tc('appName')),
+      h('p', { class: 'preview-card__desc' }, ogTag('description')),
       host ? h('p', { class: 'preview-card__domain' }, host) : null,
     ),
   );
@@ -201,6 +215,42 @@ function actions(listId, { url, message, payload }) {
   return [send, row];
 }
 
+// ---- names ----
+
+/**
+ * Shown while the list has no name or no sender: fields for whichever is missing, so the message
+ * doesn't say "Daftar tanpa nama" and friends see who sent it. Saving rebuilds the link.
+ */
+function namesCard(ctx, list) {
+  const fields = [];
+  const field = (key, label, placeholder, max) => {
+    const id = uid(`share-${key}`);
+    const input = h('input', {
+      class: 'input',
+      id,
+      attrs: { type: 'text', maxlength: max, autocomplete: key === 'from' ? 'given-name' : 'off', placeholder },
+    });
+    fields.push([key, input]);
+    return h('div', { class: 'field mt-12' }, h('label', { class: 'label', attrs: { for: id } }, label), input);
+  };
+  const save = (event) => {
+    event.preventDefault();
+    const changes = Object.fromEntries(fields.map(([key, input]) => [key, input.value.trim()]).filter(([, value]) => value));
+    if (!Object.keys(changes).length) return;
+    saveList({ ...list, ...changes });
+    ctx.rerender();
+  };
+  return h(
+    'form',
+    { class: 'names-card', attrs: { novalidate: true }, on: { submit: save } },
+    h('h2', { class: 'names-card__title' }, t(S, 'namesTitle')),
+    h('p', { class: 'hint mt-4' }, t(S, 'namesHint')),
+    !list.title && field('title', t(S, 'listName'), t(S, 'listNamePh'), LIMITS.title),
+    !list.from && field('from', t(S, 'yourName'), t(S, 'yourNamePh'), LIMITS.from),
+    h('button', { class: 'btn btn--secondary btn--block mt-12', attrs: { type: 'submit' } }, t(S, 'saveNames')),
+  );
+}
+
 // ---- view ----
 
 export async function render(ctx) {
@@ -228,7 +278,9 @@ export async function render(ctx) {
     h(
       'div',
       { class: 'l-aside' },
-      fitNotes(url.length, lang),
+      (!list.title || !list.from) && namesCard(ctx, list),
+      // What actually travels is the whole message, link included, so that's what has to fit.
+      fitNotes(message.length, lang),
       actions(list.id, { url, message, payload }),
       note('bookmark', t(S, 'backup'), { size: 14, class: 'mt-24' }),
     ),

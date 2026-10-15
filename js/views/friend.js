@@ -5,7 +5,7 @@
 // Wide screens: every card in a column you scroll through (one card per stop, from anywhere on
 // the page), with the places listed on the left and ˄ 2 / 5 ˅ above; both follow the scrolling.
 // The current card lives in the hash as '&i=' (replaceState), so a reload or Back returns to it.
-import { h, icon, toast, copyWithToast, shareOrCopy } from '../ui.js';
+import { h, icon, toast, copyWithToast, shareOrCopy, openSheet } from '../ui.js';
 import {
   topBar,
   iconButton,
@@ -36,8 +36,10 @@ const S = {
     card: '{name}, {i} dari {n}',
     next: 'Tempat berikutnya',
     previous: 'Tempat sebelumnya',
-    scrollHint: 'Scroll ke bawah buat lihat fasilitas & catatan',
+    scrollHint: 'Scroll ke bawah buat lihat selengkapnya',
     scrollPlaces: 'Scroll buat pindah tempat',
+    allPlaces: 'Semua tempat',
+    allPlacesAria: 'Tempat {i} dari {n}. Lihat semua tempat',
     dots: 'Pilih tempat',
     dot: 'Tempat {i}: {name}',
     random: 'Terserah!',
@@ -46,9 +48,9 @@ const S = {
     toastCopyFailed: 'Teksnya gagal disalin, coba lagi ya',
     preview: 'Ini tampilan teman',
     backToEdit: 'Balik ngedit',
-    save: 'Simpan ke HP ini',
-    toastSaved: 'Daftar disimpan di HP ini',
-    onPhone: 'Daftar ini udah ada di HP ini.',
+    save: 'Simpan ke perangkat ini',
+    toastSaved: 'Daftar disimpan di perangkat ini',
+    onPhone: 'Daftar ini udah ada di perangkat ini.',
     open: 'Buka',
     empty: 'Daftar ini belum ada tempatnya. Coba tanya yang ngirim link-nya ya.',
     emptyOwn: 'Daftar ini belum ada tempatnya. Tambahin dulu, baru bagikan ya.',
@@ -60,8 +62,10 @@ const S = {
     card: '{name}, {i} of {n}',
     next: 'Next place',
     previous: 'Previous place',
-    scrollHint: 'Scroll down for perks & notes',
+    scrollHint: 'Scroll down to see more',
     scrollPlaces: 'Scroll to browse places',
+    allPlaces: 'All places',
+    allPlacesAria: 'Place {i} of {n}. See all places',
     dots: 'Choose a place',
     dot: 'Place {i}: {name}',
     random: 'Surprise me',
@@ -70,9 +74,9 @@ const S = {
     toastCopyFailed: "Couldn't copy the text. Try again.",
     preview: 'This is what friends see',
     backToEdit: 'Back to editing',
-    save: 'Save to this phone',
-    toastSaved: 'List saved on this phone',
-    onPhone: 'This list is saved on this phone.',
+    save: 'Save to this device',
+    toastSaved: 'List saved on this device',
+    onPhone: 'This list is saved on this device.',
     open: 'Open',
     empty: "This list doesn't have any places yet. Try asking whoever sent the link.",
     emptyOwn: "This list doesn't have any places yet. Add some before you share it.",
@@ -81,6 +85,8 @@ const S = {
 };
 
 const SWIPE_PX = 40;
+// Up to this many places the dots show where you are; past it, "3 / 20 · Semua tempat" does.
+const MAX_DOTS = 7;
 const ARROW_STEPS = { ArrowLeft: -1, ArrowRight: 1 };
 const COMPACT_SHRINK = 88; // px the cover loses when the head is stuck (176 → 88, see .placecard__head)
 const HINT_KEY = 'jk.hint.scroll';
@@ -321,6 +327,30 @@ function placeBrowser(list, params) {
   );
   const status = h('p', { class: 'visually-hidden', attrs: { role: 'status' } });
 
+  // Many places: a counter that opens every place as a list, instead of a wall of dots.
+  const counterText = () => `${index + 1} / ${total}`;
+  const counter = h('span', { class: 'all-places__count' }, counterText());
+  const allButton = h(
+    'button',
+    {
+      class: 'all-places',
+      attrs: { type: 'button', 'aria-haspopup': 'dialog', 'aria-label': t(S, 'allPlacesAria', { i: index + 1, n: total }) },
+      on: { click: () => openAllPlaces() },
+    },
+    counter,
+    h('span', { class: 'all-places__label' }, t(S, 'allPlaces')),
+    icon('list', { size: 16 }),
+  );
+
+  function openAllPlaces() {
+    let close = () => {};
+    const picks = placePicks(places, index, (i) => {
+      close();
+      go(i);
+    });
+    close = openSheet(picks.node, { label: t(S, 'allPlaces') });
+  }
+
   function go(next) {
     const focusWasInCard = card.contains(document.activeElement);
     index = ((next % total) + total) % total;
@@ -330,6 +360,8 @@ function placeBrowser(list, params) {
     card = fresh;
     watchStick(card);
     dots.forEach((dot, i) => dot.setAttribute('aria-current', String(i === index)));
+    counter.textContent = counterText();
+    allButton.setAttribute('aria-label', t(S, 'allPlacesAria', { i: index + 1, n: total }));
 
     rememberIndex(params, index);
     revealCard(carousel);
@@ -354,10 +386,10 @@ function placeBrowser(list, params) {
   const prev = () => iconButton({ icon: 'chevron-left', label: t(S, 'previous'), onClick: () => go(index - 1) });
   const next = () => iconButton({ icon: 'chevron-right', label: t(S, 'next'), onClick: () => go(index + 1) });
 
-  // ‹ dots › under the card.
-  const nav =
-    total > 1 &&
-    h('div', { class: 'dots-nav' }, prev(), h('div', { class: 'dots', attrs: { role: 'group', 'aria-label': t(S, 'dots') } }, dots), next());
+  // ‹ dots › under the card, or ‹ 3 / 20 · Semua tempat › when there are many places.
+  const middle =
+    total > MAX_DOTS ? allButton : h('div', { class: 'dots', attrs: { role: 'group', 'aria-label': t(S, 'dots') } }, dots);
+  const nav = total > 1 && h('div', { class: 'dots-nav' }, prev(), middle, next());
 
   return { main: [carousel, nav, status, scrollHint(card)], list: null, pager: null };
 }
@@ -551,7 +583,7 @@ function watchBreakpoint(ctx) {
   breakpointWatch = { query, onChange };
 }
 
-/** "Simpan ke HP ini" for a list this phone doesn't have yet; afterwards (or if it has it) a link to open it. */
+/** "Simpan ke perangkat ini" for a list this device doesn't have yet; afterwards (or if it has it) a link to open it. */
 function saveArea(list) {
   const area = h('div', { class: 'center-row mt-8' });
 
@@ -575,8 +607,8 @@ function saveArea(list) {
     showOpen(saved.id).focus();
   };
 
-  // A list already on this phone may be newer than the link (the coordinator's own), so never overwrite it here.
-  // The example is never "already on this phone": each saved copy has its own id (an old 'sample01' copy is ignored).
+  // A list already on this device may be newer than the link (the coordinator's own), so never overwrite it here.
+  // The example is never "already on this device": each saved copy has its own id (an old 'sample01' copy is ignored).
   if (list.id !== SAMPLE_ID && getList(list.id)) showOpen(list.id);
   else {
     area.append(
@@ -614,10 +646,19 @@ function credit() {
 
 /** "Terserah!" and "Bandingin" (from 2 places). */
 function friendActions({ payload, from }, total) {
+  // The card on screen is kept in the address ('&i='), so the link reads it when tapped: Terserah
+  // comes back to it, and Bandingin starts with it.
+  const hrefFor = (v) => routes.friend(payload, { from, v, i: routes.parseRoute(location.hash).params.i || null });
   const action = (v, name, key) =>
     h(
       'a',
-      { class: 'btn btn--secondary', attrs: { href: routes.friend(payload, { from, v }) } },
+      {
+        class: 'btn btn--secondary',
+        attrs: { href: hrefFor(v) },
+        on: {
+          click: (event) => event.currentTarget.setAttribute('href', hrefFor(v)),
+        },
+      },
       icon(name, { size: 16 }),
       h('span', {}, t(S, key)),
     );

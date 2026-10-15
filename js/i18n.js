@@ -31,18 +31,18 @@ export const COMMON = {
     open24: 'Buka 24 jam',
 
     // Generic controls
-    back: 'Kembali',
+    back: 'Balik',
     close: 'Tutup',
     cancel: 'Batal',
-    langId: 'Bahasa Indonesia',
-    langEn: 'English',
+    langId: 'ID, Bahasa Indonesia',
+    langEn: 'EN, English',
 
     // List and place words
     onePlace: '{n} tempat',
     manyPlaces: '{n} tempat',
     perksTitle: 'Fasilitas',
     fromName: 'dari {name}',
-    savedHere: 'disimpan di HP ini',
+    savedHere: 'disimpan di perangkat ini',
     fromMaps: 'dari Maps',
     untitled: 'Daftar tanpa nama',
 
@@ -70,7 +70,7 @@ export const COMMON = {
     errGenericBody: 'Coba lagi sebentar ya.',
     errStorage: 'Browser ini nggak bisa nyimpen daftar. Link yang udah dibagikan tetep bisa dibuka.',
     errNotSaved: 'Perubahan terakhir nggak kesimpan di perangkat ini (penyimpanannya penuh atau diblokir). Bagikan link-nya biar nggak hilang.',
-    errNotFound: 'Daftar ini nggak ketemu di HP ini.',
+    errNotFound: 'Daftar ini nggak ketemu di perangkat ini.',
     goHome: 'Ke halaman awal',
 
     // Screen names for the document title
@@ -135,14 +135,14 @@ export const COMMON = {
     back: 'Back',
     close: 'Close',
     cancel: 'Cancel',
-    langId: 'Bahasa Indonesia',
-    langEn: 'English',
+    langId: 'ID, Bahasa Indonesia',
+    langEn: 'EN, English',
 
     onePlace: '{n} place',
     manyPlaces: '{n} places',
-    perksTitle: 'Perks',
+    perksTitle: 'Facilities',
     fromName: 'from {name}',
-    savedHere: 'saved on this phone',
+    savedHere: 'saved on this device',
     fromMaps: 'from Maps',
     untitled: 'Untitled list',
 
@@ -168,7 +168,7 @@ export const COMMON = {
     errGenericBody: 'Give it another try in a moment.',
     errStorage: "This browser can't save lists. Shared links still open fine.",
     errNotSaved: "Your last change couldn't be saved on this device (storage is full or blocked). Share the link so it isn't lost.",
-    errNotFound: "We couldn't find this list on this phone.",
+    errNotFound: "We couldn't find this list on this device.",
     goHome: 'Go to the home page',
 
     titles: {
@@ -282,13 +282,14 @@ function formatCount(count, lang) {
   return String(Number(digits)).replace(/\B(?=(\d{3})+(?!\d))/g, sep);
 }
 
-/** '4.9 (1.146)' in Bahasa, '4.9 (1,146)' in English, '4.9' without a count, null without a rating. */
+/** '4,9 (1.146)' in Bahasa (as Google Maps shows it), '4.9 (1,146)' in English, '4,9' without a count, null without a rating. */
 export function formatRating(rating, count, lang) {
   if (rating === null || rating === undefined || rating === '') return null;
   const value = Number(rating);
   if (!Number.isFinite(value)) return null;
-  const text = value.toFixed(1);
-  const n = formatCount(count, pick(lang));
+  const l = pick(lang);
+  const text = l === 'id' ? value.toFixed(1).replace('.', ',') : value.toFixed(1);
+  const n = formatCount(count, l);
   return n ? `${text} (${n})` : text;
 }
 

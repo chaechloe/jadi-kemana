@@ -14,7 +14,7 @@ const S = {
     linkLabel: 'Tempel link daftar',
     linkPlaceholder: 'https://…/jadi-kemana/#d=…',
     open: 'Buka',
-    footer: 'Daftar cuma disimpan di HP ini. Link yang udah kamu bagikan bisa dibuka lagi kapan aja.',
+    footer: 'Daftar cuma disimpan di perangkat ini. Link yang udah kamu bagikan bisa dibuka lagi kapan aja.',
     opened: 'Daftar dibuka',
     updated: 'Daftar udah diganti pakai versi link',
     savedCopy: 'Disimpan sebagai daftar baru',
@@ -33,7 +33,7 @@ const S = {
     linkLabel: 'Paste the list link',
     linkPlaceholder: 'https://…/jadi-kemana/#d=…',
     open: 'Open',
-    footer: "Lists are only saved on this phone. Any link you've shared can be opened again anytime.",
+    footer: "Lists are only saved on this device. Any link you've shared can be opened again anytime.",
     opened: 'List opened',
     updated: 'List replaced with the version from the link',
     savedCopy: 'Saved as a new list',
@@ -74,9 +74,9 @@ export function listItem(list, { current = false, trail = null, onClick } = {}) 
   });
 }
 
-/** Creates an empty list and opens it in the editor. */
+/** Creates an empty, unnamed list and opens it in the editor (Share asks for a name later). */
 export function startNewList(ctx) {
-  const list = createList({ title: tc('newList'), from: '' });
+  const list = createList();
   ctx.nav(routes.list(list.id));
 }
 

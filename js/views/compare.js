@@ -48,7 +48,7 @@ const S = {
     tableLabel: 'Comparing two places',
     infoCol: 'Info',
     groupInfo: 'Info',
-    groupPerks: 'Perks',
+    groupPerks: 'Facilities',
     rating: 'Rating',
     hours: 'Hours',
     address: 'Address',
@@ -73,7 +73,8 @@ const STATE_KEY = 'jkComparePair';
 
 // ---- remembered choice ----
 
-function recallPair(count) {
+/** The pair picked earlier on this screen, else the card the friend was on (A) and the next one (B). */
+function recallPair(count, current) {
   try {
     const pair = history.state?.[STATE_KEY];
     const valid = (i) => Number.isInteger(i) && i >= 0 && i < count;
@@ -81,7 +82,8 @@ function recallPair(count) {
   } catch {
     // History unavailable: fall back to the default pair.
   }
-  return [0, 1];
+  const a = Number.isInteger(current) && current >= 0 && current < count ? current : 0;
+  return [a, (a + 1) % count];
 }
 
 function rememberPair(pair) {
@@ -251,12 +253,12 @@ function tableGroups(a, b) {
 
 export async function render(ctx) {
   const places = ctx.list?.places ?? [];
-  const back = routes.friend(ctx.params.payload, { from: ctx.params.from });
+  const back = routes.friend(ctx.params.payload, { from: ctx.params.from, i: ctx.params.i || null });
   if (places.length < 2) {
     return deadEnd({ back, title: t(S, 'title'), icon: 'columns-2', text: t(S, 'needTwo'), label: t(S, 'toList') });
   }
 
-  let [indexA, indexB] = recallPair(places.length);
+  let [indexA, indexB] = recallPair(places.length, Number(ctx.params.i || 0));
   const errorId = uid('cmp-error');
   const message = () => compareMessage(places[indexA], places[indexB], getLang());
 

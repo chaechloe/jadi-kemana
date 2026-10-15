@@ -125,7 +125,7 @@ export async function render(ctx) {
   const list = ctx.list;
   const places = list?.places ?? [];
   const { payload, from } = ctx.params;
-  const back = routes.friend(payload, { from });
+  const back = routes.friend(payload, { from, i: ctx.params.i || null });
   if (!places.length) {
     return deadEnd({ back, title: t(S, 'title'), icon: 'map-pin', text: t(S, 'empty'), label: t(S, 'toList') });
   }

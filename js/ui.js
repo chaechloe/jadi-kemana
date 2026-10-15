@@ -6,7 +6,10 @@ import { ICONS } from './icons.js';
 import { tc } from './i18n.js';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
-const TOAST_MS = 2400;
+// A toast stays long enough to read: at least 4 s (6 s for a problem), longer for long text.
+const TOAST_MIN_MS = 4000;
+const TOAST_ERROR_MS = 6000;
+const TOAST_MS_PER_CHAR = 60;
 
 // ---- h() ----
 
@@ -148,7 +151,8 @@ export function toast(message, { icon: iconName = 'check' } = {}) {
 
   region.replaceChildren(h('div', { class: 'toast' }, icon(iconName, { size: 18 }), h('span', {}, message)));
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => region.replaceChildren(), TOAST_MS);
+  const floor = iconName.startsWith('alert') ? TOAST_ERROR_MS : TOAST_MIN_MS;
+  toastTimer = setTimeout(() => region.replaceChildren(), Math.max(floor, String(message).length * TOAST_MS_PER_CHAR));
 }
 
 // ---- openSheet() ----

@@ -14,8 +14,9 @@ import {
   primaryButton,
   deleteRow,
   confirmDelete,
+  chooseSheet,
 } from '../components.js';
-import { t, tc, getLang, formatHours, COMMON } from '../i18n.js';
+import { t, tc, getLang, formatHours, formatRating, COMMON } from '../i18n.js';
 import { PERKS, COLORS, EMOJIS, LIMITS, colorHex } from '../data.js';
 import { getList, upsertPlace, removePlace, savedToDevice } from '../store.js';
 import { isSafeMapsUrl, parseWebLink } from '../links.js';
@@ -52,16 +53,16 @@ const S = {
     filledName: 'Nama tempat udah keisi dari Maps. Cek lagi ya.',
     filledAddress: 'Alamat udah keisi dari Maps. Cek lagi ya.',
     linkSaved: 'Link Maps-nya udah masuk.',
-    addrLabel: 'Alamat',
+    addrLabel: 'Alamat (opsional)',
     addrPh: 'Jalan, daerah, kota',
     addrHelp: 'Alamat kira-kira, tambahin nomornya ya.',
     addrLoading: 'Lagi nyari alamat kira-kiranya…',
     osmCredit: '© OpenStreetMap',
     manualInfo: 'Jam buka sama fasilitas isi sendiri ya, rating juga kalau belum keisi.',
     ratingLabel: 'Rating (opsional)',
-    ratingPh: '4.8',
+    ratingPh: '4,8',
     ratingError: 'Isi angka 0,1 sampai 5 ya.',
-    countLabel: 'Ulasan (opsional)',
+    countLabel: 'Jumlah ulasan (opsional)',
     countPh: '1146',
     hoursLabel: 'Jam buka (opsional)',
     hoursPh: '09.00–22.00',
@@ -78,7 +79,7 @@ const S = {
     look: 'Tampilan kartu',
     emojiGroup: 'Pilih emoji',
     colorGroup: 'Pilih warna',
-    noteTitle: 'Catatan kamu',
+    noteTitle: 'Catatan kamu (opsional)',
     notePh: 'Contoh: Datang pagi biar kebagian colokan.',
     noteHelp: 'Jangan tulis info pribadi ya. Siapa pun yang punya link bisa baca.',
     noteCount: '{n}/{max}',
@@ -91,6 +92,9 @@ const S = {
     full: 'Daftarnya udah penuh, maksimal {n} tempat.',
     placeMissing: 'Tempat ini udah nggak ada di daftar.',
     backToList: 'Balik ke daftar',
+    discardTitle: 'Buang perubahan?',
+    discardBody: 'Yang barusan kamu isi belum disimpan.',
+    discard: 'Buang',
   },
   en: {
     nameLabel: 'Place name',
@@ -111,16 +115,16 @@ const S = {
     filledName: 'Place name filled in from Maps. Give it a quick check.',
     filledAddress: 'Address filled in from Maps. Give it a quick check.',
     linkSaved: 'Maps link added.',
-    addrLabel: 'Address',
+    addrLabel: 'Address (optional)',
     addrPh: 'Street, area, city',
     addrHelp: 'Rough address. Add the street number.',
     addrLoading: 'Looking up a rough address…',
     osmCredit: '© OpenStreetMap',
-    manualInfo: "Fill in hours and perks yourself, and the rating if it isn't filled in yet.",
+    manualInfo: "Fill in hours and facilities yourself, and the rating if it isn't filled in yet.",
     ratingLabel: 'Rating (optional)',
     ratingPh: '4.8',
     ratingError: 'Use a number from 0.1 to 5.',
-    countLabel: 'Reviews (optional)',
+    countLabel: 'Number of reviews (optional)',
     countPh: '1146',
     hoursLabel: 'Hours (optional)',
     hoursPh: '09:00–22:00',
@@ -130,14 +134,14 @@ const S = {
     menuError: "That link doesn't look right. Copy the whole link again.",
     perksHelp: 'Pick what applies',
     other: 'Other',
-    customLabel: 'Other perk',
+    customLabel: 'Other facility',
     customPh: 'e.g. Printing',
     customAdd: 'Add',
     removeCustom: 'Remove {name}',
     look: 'Card look',
     emojiGroup: 'Choose an emoji',
     colorGroup: 'Choose a colour',
-    noteTitle: 'Your note',
+    noteTitle: 'Your note (optional)',
     notePh: 'e.g. Come early to get a table by an outlet.',
     noteHelp: "Don't add private info. Anyone with the link can read it.",
     noteCount: '{n}/{max}',
@@ -150,6 +154,9 @@ const S = {
     full: 'This list is full: {n} places max.',
     placeMissing: "This place isn't on the list anymore.",
     backToList: 'Back to the list',
+    discardTitle: 'Discard your changes?',
+    discardBody: "What you just filled in isn't saved yet.",
+    discard: 'Discard',
   },
 };
 
@@ -174,7 +181,10 @@ export async function render(ctx) {
 
   const state = ctx.state;
   const fresh = !state.place;
-  if (fresh) Object.assign(state, createState(list, stored));
+  if (fresh) {
+    Object.assign(state, createState(list, stored));
+    state.snapshot = snapshotOf(state); // what "no changes" looks like (a pasted prefill is a change)
+  }
   const prefill = fresh && !pid ? takePrefill() : '';
   if (prefill) pasteLink(state, prefill);
 
@@ -186,6 +196,10 @@ export async function render(ctx) {
 }
 
 // ---- state ----
+
+/** Everything the form can change, as one string to compare. */
+const snapshotOf = (state) => JSON.stringify([state.place, state.rating, state.link]);
+const isDirty = (state) => snapshotOf(state) !== state.snapshot;
 
 function createState(list, stored) {
   const n = list.places.length;
@@ -203,7 +217,8 @@ function createState(list, stored) {
     editing: Boolean(stored),
     originalName: stored?.name ?? '',
     ...autofillState(place.maps), // link, pasted, status, filled, auto, approx, lookup
-    rating: place.rating == null ? '' : String(place.rating),
+    // Shown the way the language writes it (4,8 in Bahasa); parseRating takes either.
+    rating: place.rating == null ? '' : formatRating(place.rating, '', getLang()),
     errors: { name: false, rating: false, menu: false },
     customOpen: false,
     customDraft: '',
@@ -323,9 +338,36 @@ const setPressed = (el, on) => el.setAttribute('aria-pressed', String(on));
 
 // ---- screen ----
 
+/**
+ * Leaving through a link (the X, the logo) with unsaved changes asks first: save, discard, or
+ * keep editing. Saving and deleting navigate themselves, so they never ask.
+ */
+function guardLeaving(f, root) {
+  root.addEventListener(
+    'click',
+    (event) => {
+      const link = event.target.closest('a[href^="#"]');
+      if (!link || link.getAttribute('href') === location.hash || !isDirty(f.state)) return;
+      if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      event.preventDefault();
+      const href = link.getAttribute('href');
+      chooseSheet({
+        title: t(S, 'discardTitle'),
+        body: h('p', { class: 'muted' }, t(S, 'discardBody')),
+        choices: [
+          { label: tc('savePlace'), icon: 'check', variant: 'btn--primary', onChoose: () => save(f) },
+          { label: t(S, 'discard'), icon: 'trash', variant: 'btn--danger', onChoose: () => f.ctx.nav(href) },
+        ],
+      });
+    },
+    true,
+  );
+  return root;
+}
+
 function buildForm(f) {
   // Wide screens: the form on the left; a bigger preview and the save button in a side panel.
-  return h(
+  return guardLeaving(f, h(
     'div',
     { class: 'screen screen--form layout layout--aside-end' },
     header(f),
@@ -337,7 +379,7 @@ function buildForm(f) {
       f.state.editing && deleteButton(f),
     ),
     h('div', { class: 'l-aside' }, showcase(f), bottomBar(primaryButton({ label: tc('savePlace'), onClick: () => save(f) }))),
-  );
+  ));
 }
 
 function formCard(f) {
@@ -891,7 +933,7 @@ function lookFields(f) {
   );
 
   return [
-    h('h3', { class: 'card__title' }, t(S, 'look')),
+    h('h2', { class: 'card__title' }, t(S, 'look')),
     h('div', { class: 'emoji-grid mt-8', attrs: { role: 'group', 'aria-label': t(S, 'emojiGroup') } }, emojis),
     h('div', { class: 'swatch-grid mt-4', attrs: { role: 'group', 'aria-label': t(S, 'colorGroup') } }, swatches),
   ];
@@ -920,7 +962,7 @@ function noteField(f) {
   count();
 
   return [
-    h('h3', { class: 'card__title mt-16' }, h('label', { attrs: { for: 'pf-note' } }, t(S, 'noteTitle'))),
+    h('h2', { class: 'card__title mt-16' }, h('label', { attrs: { for: 'pf-note' } }, t(S, 'noteTitle'))),
     area,
     h('div', { class: 'helper-row' }, h('p', { class: 'helper', id: 'pf-note-help' }, t(S, 'noteHelp')), counter),
   ];

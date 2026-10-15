@@ -4,7 +4,7 @@ import { h, icon, uid } from '../ui.js';
 import { topBar, ticket, squiggleWord, primaryButton, note } from '../components.js';
 import { getLang, t, tc } from '../i18n.js';
 import { sampleList } from '../data.js';
-import { getLists, storageOk } from '../store.js';
+import { getLists, storageOk, dropUntouchedLists } from '../store.js';
 import { encodeList } from '../codec.js';
 import * as routes from '../routes.js';
 import { listItem, newListItem, linkImportItem, startNewList } from './lists-sheet.js';
@@ -16,7 +16,7 @@ const S = {
     body: 'Kumpulin tempat, kirim satu link ke grup, bahas bareng. Nggak perlu install, nggak perlu akun.',
     cta: 'Bikin daftar',
     example: 'Lihat contoh dulu',
-    deviceNote: 'Disimpan di HP ini. Link yang udah kamu bagikan jadi cadangannya.',
+    deviceNote: 'Disimpan di perangkat ini. Link yang udah kamu bagikan jadi cadangannya.',
   },
   en: {
     headLead: 'Make the hangout plan actually',
@@ -24,7 +24,7 @@ const S = {
     body: 'Collect places, send one link to the group, talk it over. Nothing to install, no account.',
     cta: 'Make a list',
     example: 'See an example first',
-    deviceNote: 'Saved on this phone. The links you share are the backup.',
+    deviceNote: 'Saved on this device. The links you share are the backup.',
   },
 };
 
@@ -44,7 +44,7 @@ function band() {
  */
 function ticketStack(places) {
   const [back, middle, front] = places;
-  const goPill = h('span', { class: 'go-pill' }, icon('message-circle', { size: 14 }), h('span', {}, tc('discuss')));
+  const goPill = h('span', { class: 'go-pill' }, icon('brand-whatsapp', { size: 14 }), h('span', {}, tc('discuss')));
   return h(
     'div',
     { class: 'ticket-stack', attrs: { 'aria-hidden': 'true' } },
@@ -101,6 +101,7 @@ function openFromLink(ctx) {
 
 export async function render(ctx) {
   const sample = sampleList(getLang());
+  dropUntouchedLists();
   const lists = getLists();
   const exampleHref = await exampleHash(sample);
 
@@ -108,7 +109,7 @@ export async function render(ctx) {
     'div',
     { class: 'screen screen--nobar screen--welcome' },
     // Phones: band, tickets and buttons stacked. Wide screens: an open hero, copy left and tickets right (CSS).
-    h('div', { class: 'hero' }, band(), ticketStack(sample.places), actions(ctx, exampleHref)),
+    h('div', { class: ['hero', lists.length > 0 && 'hero--returning'] }, band(), ticketStack(sample.places), actions(ctx, exampleHref)),
     storageNote(),
     lists.length ? yourLists(ctx, lists) : openFromLink(ctx),
   );

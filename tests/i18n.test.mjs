@@ -47,12 +47,12 @@ test('formatHours in both languages', () => {
 });
 
 test('formatRating in both languages', () => {
-  assert.equal(formatRating(4.9, '1146', 'id'), '4.9 (1.146)');
+  assert.equal(formatRating(4.9, '1146', 'id'), '4,9 (1.146)');
   assert.equal(formatRating(4.9, '1146', 'en'), '4.9 (1,146)');
   assert.equal(formatRating(4.9, '1.146', 'en'), '4.9 (1,146)');
-  assert.equal(formatRating(4.6, '1234567', 'id'), '4.6 (1.234.567)');
+  assert.equal(formatRating(4.6, '1234567', 'id'), '4,6 (1.234.567)');
   assert.equal(formatRating(5, '643', 'en'), '5.0 (643)');
-  assert.equal(formatRating(4.8, '', 'id'), '4.8');
+  assert.equal(formatRating(4.8, '', 'id'), '4,8');
   assert.equal(formatRating(4.8, null, 'en'), '4.8');
   assert.equal(formatRating(null, '100', 'id'), null);
 });

@@ -125,6 +125,16 @@ export function deleteList(id) {
   writeAll(readAll().filter((list) => list.id !== id));
 }
 
+/**
+ * Removes lists that were started and left untouched (no places, no name, no sender, never
+ * shared), so tapping "Bikin daftar" and going back doesn't leave empty rows behind.
+ */
+export function dropUntouchedLists() {
+  const lists = readAll();
+  const kept = lists.filter((list) => list.places.length || list.title || list.from || list.sharedAt !== null);
+  if (kept.length !== lists.length) writeAll(kept);
+}
+
 // Applies `change` to a copy of the stored list and saves it. Returns the list
 // (unsaved when `change` returns false), or null when the list is missing.
 function updateList(listId, change, options) {
