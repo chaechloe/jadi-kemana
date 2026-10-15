@@ -5,7 +5,7 @@ import { h, icon, uid, copyWithToast, shareOrCopy } from '../ui.js';
 import { topBar, pageHeader, sendButton, ghostRow, deadEnd, bottomBar, hidden } from '../components.js';
 import { getLang, t, tc, formatHours, formatRating } from '../i18n.js';
 import { PERKS, EMOJIS, colorHex } from '../data.js';
-import { waLink, compareMessage, isSafeMapsUrl } from '../links.js';
+import { waLink, compareMessage, isSafeMapsUrl, linkInfo } from '../links.js';
 import * as routes from '../routes.js';
 
 const S = {
@@ -25,6 +25,8 @@ const S = {
     hours: 'Jam buka',
     address: 'Alamat',
     note: 'Catatan',
+    menu: 'Menu',
+    noMenu: 'Nggak ada link menu',
     higher: 'lebih tinggi',
     yes: 'Ada',
     no: 'Nggak ada',
@@ -51,6 +53,8 @@ const S = {
     hours: 'Hours',
     address: 'Address',
     note: 'Note',
+    menu: 'Menu',
+    noMenu: 'No menu link',
     higher: 'higher',
     yes: 'Yes',
     no: 'No',
@@ -164,6 +168,14 @@ function textCell(text, { clamp = false } = {}) {
   return cell(h('span', { class: clamp ? 'clamp-3' : 'cmp-row__text' }, text), 'plain');
 }
 
+/** 'Lihat menu' when the place has a (safe) menu link. */
+function menuCell(place) {
+  const info = linkInfo(place.menu);
+  if (!info) return dashCell(t(S, 'noMenu'));
+  const attrs = { href: info.href, target: '_blank', rel: 'noopener noreferrer', title: info.host };
+  return cell(h('a', { class: 'link link--hit', attrs }, tc('menu')), 'plain');
+}
+
 function hasCell(has) {
   return has ? cell([icon('check', { size: 18 }), hidden(t(S, 'yes'))], 'plain') : dashCell(t(S, 'no'));
 }
@@ -228,6 +240,7 @@ function tableGroups(a, b) {
     row(t(S, 'hours'), [hoursCell(a), hoursCell(b)]),
     row(t(S, 'address'), [textCell(a.address, { clamp: true }), textCell(b.address, { clamp: true })], 'top'),
     (a.note || b.note) && row(t(S, 'note'), [textCell(a.note), textCell(b.note)], 'top'),
+    (a.menu || b.menu) && row(t(S, 'menu'), [menuCell(a), menuCell(b)]),
   ].filter(Boolean);
   return [group(t(S, 'groupInfo'), info), group(t(S, 'groupPerks'), [...perkRows(a, b), ...customRows(a, b)])].filter(
     Boolean,

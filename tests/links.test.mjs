@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   waLink, placeMessage, randomMessage, compareMessage, listMessage,
   isSafeMapsUrl, isShortMapsUrl, canonicalMapsUrl, parseMapsInput,
+  isSafeWebUrl, parseWebLink, linkInfo,
 } from '../js/links.js';
 import { sampleList } from '../js/data.js';
 
@@ -320,4 +321,43 @@ test('a copied panel that says "Open 24 hours" sets the hours', () => {
 test('plain chat text is not mistaken for a place', () => {
   assert.equal(parseMapsInput('Kopi Kenangan'), null);
   assert.equal(parseMapsInput('Hai semua, besok jadi kemana?'), null);
+});
+
+test('menu links: http(s) to a real host only, with no login part or hidden characters', () => {
+  for (const url of [
+    'https://drive.google.com/file/d/abc/view?usp=sharing',
+    'https://www.instagram.com/kopisebelah/',
+    'http://kopisebelah.id/menu.pdf',
+  ]) assert.ok(isSafeWebUrl(url), url);
+  for (const url of [
+    'javascript:alert(1)',
+    'data:text/html,hi',
+    'file:///C:/menu.pdf',
+    'https://google.com@evil.example/menu',
+    'https://user:pw@kopi.id/menu',
+    'https://localhost/menu',
+    'https://kopi.id/menu\nhttps://evil.example',
+    'https://kopi.id/‮fdp.exe',
+    '',
+    `https://kopi.id/${'a'.repeat(2100)}`,
+  ]) assert.ok(!isSafeWebUrl(url), url);
+});
+
+test('parseWebLink adds https:// to a bare link and refuses anything unsafe', () => {
+  assert.deepEqual(parseWebLink(''), { ok: true, value: '' });
+  assert.deepEqual(parseWebLink('   '), { ok: true, value: '' });
+  assert.deepEqual(parseWebLink('drive.google.com/file/d/abc/view'), { ok: true, value: 'https://drive.google.com/file/d/abc/view' });
+  assert.deepEqual(parseWebLink('  https://KOPI.id/Menu.PDF  '), { ok: true, value: 'https://kopi.id/Menu.PDF' });
+  for (const bad of ['javascript:alert(1)', 'kopi sebelah', 'menu', 'https://a@b.com/x']) {
+    assert.equal(parseWebLink(bad).ok, false, bad);
+  }
+});
+
+test('linkInfo says where a menu link goes and whether it is a PDF', () => {
+  assert.deepEqual(linkInfo('https://www.kopi.id/files/Menu.PDF?v=2'), { href: 'https://www.kopi.id/files/Menu.PDF?v=2', host: 'kopi.id', pdf: true });
+  assert.equal(linkInfo('https://drive.google.com/file/d/abc/view').host, 'drive.google.com');
+  assert.equal(linkInfo('https://drive.google.com/file/d/abc/view').pdf, false);
+  // Look-alike hosts (two Cyrillic o letters here) show as punycode, not as the letters they imitate.
+  assert.equal(linkInfo('https://g\u043E\u043Egle.com/menu').host, 'xn--ggle-55da.com');
+  assert.equal(linkInfo('javascript:alert(1)'), null);
 });

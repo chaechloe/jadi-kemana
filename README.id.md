@@ -27,6 +27,7 @@ Masih bingung? Tombol **Terserah!** bakal milihin satu tempat buat kalian. Galau
 
 - Bisa bikin beberapa daftar di satu HP, misalnya "WFC Bandung", "Bukber kantor", dan "Nongkrong Sabtu"
 - Kartu tempat berisi alamat, jam buka, rating, fasilitas (WiFi, colokan, AC, mushola, parkir…), catatan dari koordinator, plus emoji dan warna buat tiap tempat
+- Link menu opsional per tempat (PDF di Google Drive, Instagram, atau web): teman tinggal ketuk "Lihat menu" dan langsung kebuka, nggak perlu download. PDF yang ada di HP perlu di-upload ke Google Drive dulu, karena app ini nggak punya server buat nyimpen file
 - Tempel dari Google Maps biar detailnya keisi: info tempat yang disalin ngisi nama, rating, ulasan, dan alamat; link lengkap ngisi nama dan perkiraan alamat
 - Bagian atas kartu tempat tetap nempel pas kamu scroll ke fasilitas dan catatan, plus pengingat "scroll ke bawah" sekali aja
 - Bagikan satu daftar utuh (maksimal 20 tempat) lewat satu link. Daftar pendek muat di mana aja, termasuk DM Instagram; yang lebih panjang tetap muat di WhatsApp. Layar bagikan bakal ngasih tahu link kamu muat di app mana aja.

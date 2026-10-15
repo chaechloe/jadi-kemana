@@ -18,7 +18,7 @@ import {
 import { t, tc, getLang, formatHours, COMMON } from '../i18n.js';
 import { PERKS, COLORS, EMOJIS, LIMITS, colorHex } from '../data.js';
 import { getList, upsertPlace, removePlace } from '../store.js';
-import { isSafeMapsUrl } from '../links.js';
+import { isSafeMapsUrl, parseWebLink } from '../links.js';
 import {
   autofillState,
   mapsFromLink,
@@ -65,6 +65,10 @@ const S = {
     countPh: '1146',
     hoursLabel: 'Jam buka (opsional)',
     hoursPh: '09.00–22.00',
+    menuLabel: 'Menu (opsional)',
+    menuPh: 'Link menu: Google Drive, Instagram, web',
+    menuHelp: 'Menunya PDF? Upload dulu ke Google Drive (akses: siapa saja yang punya link), lalu tempel link-nya di sini. Teman tinggal buka, nggak perlu download.',
+    menuError: 'Link-nya kurang pas. Coba salin lagi link lengkapnya ya.',
     perksHelp: 'Pilih yang ada',
     other: 'Lainnya',
     customLabel: 'Fasilitas lain',
@@ -120,6 +124,10 @@ const S = {
     countPh: '1146',
     hoursLabel: 'Hours (optional)',
     hoursPh: '09:00–22:00',
+    menuLabel: 'Menu (optional)',
+    menuPh: 'Menu link: Google Drive, Instagram, website',
+    menuHelp: 'Menu is a PDF? Upload it to Google Drive first (access: anyone with the link), then paste the link here. Friends just open it, no download.',
+    menuError: "That link doesn't look right. Copy the whole link again.",
     perksHelp: 'Pick what applies',
     other: 'Other',
     customLabel: 'Other perk',
@@ -185,7 +193,7 @@ function createState(list, stored) {
     ? { ...stored, perks: [...stored.perks], custom: [...stored.custom] }
     : {
         id: '', name: '', address: '', hours: '', rating: null, ratingCount: '',
-        perks: [], custom: [], note: '', maps: '',
+        perks: [], custom: [], note: '', maps: '', menu: '',
         // Each new place starts on the next emoji and colour, so a list doesn't look all alike.
         emoji: EMOJIS[n % EMOJIS.length],
         color: COLORS[n % COLORS.length].key,
@@ -196,7 +204,7 @@ function createState(list, stored) {
     originalName: stored?.name ?? '',
     ...autofillState(place.maps), // link, pasted, status, filled, auto, approx, lookup
     rating: place.rating == null ? '' : String(place.rating),
-    errors: { name: false, rating: false },
+    errors: { name: false, rating: false, menu: false },
     customOpen: false,
     customDraft: '',
   };
@@ -345,6 +353,7 @@ function formCard(f) {
       manualInfo(f),
       ratingFields(f),
       hoursField(f),
+      menuField(f),
       perksField(f),
     ),
     h('div', { class: 'card__section' }, lookFields(f), noteField(f)),
@@ -814,6 +823,40 @@ function closeCustom(f, keep) {
   (refs.perks.querySelector('.chip--dashed') ?? removes[removes.length - 1])?.focus();
 }
 
+// ---- menu link ----
+
+/** Optional link to the menu (a PDF on Google Drive, Instagram, a web page). Checked on save. */
+function menuField(f) {
+  const { state, ui, refs } = f;
+  const error = errorHelper('pf-menu-error', t(S, 'menuError'));
+  const input = textInput('pf-menu', state.place.menu, {
+    attrs: { type: 'url', inputmode: 'url', autocapitalize: 'off', spellcheck: 'false', placeholder: t(S, 'menuPh') },
+    on: {
+      input: () => {
+        state.place.menu = input.value;
+        if (!state.errors.menu) return;
+        state.errors.menu = false;
+        ui.menuMeta();
+      },
+    },
+  });
+  refs.menu = input;
+  ui.menuMeta = () => {
+    setError(input, error, state.errors.menu);
+    describe(input, state.errors.menu && error.id, 'pf-menu-help');
+  };
+  ui.menuMeta();
+
+  return h(
+    'div',
+    { class: 'field mt-20' },
+    label('pf-menu', t(S, 'menuLabel')),
+    input,
+    error,
+    h('p', { class: 'helper', id: 'pf-menu-help' }, icon('info-circle', { size: 14 }), h('span', {}, t(S, 'menuHelp'))),
+  );
+}
+
 // ---- card look and note ----
 
 /** Buttons where exactly one value is picked (aria-pressed); picking updates the preview. */
@@ -890,18 +933,22 @@ function save(f) {
   const name = state.place.name.trim();
   const rating = parseRating(state.rating);
   const maps = mapsFromLink(state);
+  const menu = parseWebLink(state.place.menu);
 
   state.errors.name = !name;
   state.errors.rating = !rating.ok;
+  state.errors.menu = !menu.ok;
   ui.nameMeta();
   ui.ratingMeta();
+  ui.menuMeta();
   if (maps === null) {
     state.status = 'invalid';
     ui.status();
   }
 
   // Focus the first problem, top to bottom.
-  const problem = (maps === null && refs.link) || (!name && refs.name) || (!rating.ok && refs.rating);
+  const problem =
+    (maps === null && refs.link) || (!name && refs.name) || (!rating.ok && refs.rating) || (!menu.ok && refs.menu);
   if (problem) {
     problem.focus();
     return;
@@ -915,6 +962,7 @@ function save(f) {
     rating: rating.value,
     note: state.place.note.trim(),
     maps,
+    menu: menu.value,
   });
   if (!saved) {
     toast(getList(list.id) ? t(S, 'full', { n: LIMITS.places }) : tc('errNotFound'), { icon: 'alert-circle' });

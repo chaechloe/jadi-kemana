@@ -54,6 +54,7 @@ Place = {
   custom,        // ≤ 5 free-text perks, each ≤ 30
   note,          // ≤ 200, may be ''
   maps,          // '' or a canonical URL that passes isSafeMapsUrl()
+  menu,          // '' or a canonical http(s) URL that passes isSafeWebUrl() (a PDF on Drive, Instagram, a web page)
 }
 ```
 
@@ -67,9 +68,10 @@ Place = {
   ```
   [1, listId, title, from, [ place, … ]]
   place = [name, emoji, colorIndex, address, hours, ratingX10 /*0 = none*/, ratingCount,
-           perksBitmask /*bit i = PERKS[i]*/, custom[], note, maps /*'~<id>' = maps.app.goo.gl/<id>*/]
+           perksBitmask /*bit i = PERKS[i]*/, custom[], note, maps /*'~<id>' = maps.app.goo.gl/<id>*/,
+           menu /*added later: links made before it end at maps*/]
   ```
-- **Links people already shared must keep working.** Never reorder or remove `data.PERKS` / `data.COLORS` (only append), and keep `tests/golden.test.mjs` passing: it decodes two frozen real links.
+- **Links people already shared must keep working.** Never reorder or remove `data.PERKS` / `data.COLORS` (only append), add new place fields only at the end of `place` (as `menu` was), and keep `tests/golden.test.mjs` passing: it decodes two frozen real links.
 - **Decoding** validates types, truncates to `data.LIMITS`, drops unsafe URLs, caps places at `LIMITS.places` and gives places fresh ids.
 - The site address is inside every shared link: renaming the repo or the GitHub user breaks old links.
 
@@ -101,7 +103,7 @@ export async function render(ctx) { /* returns an HTMLElement */ }
 // }
 ```
 
-**Layout:** phones get one column with a bottom bar pinned to the screen. The page sits on a warm haze (a fixed layer in body::before: peach at the top melting into the cream ground, with a fine grain), so bars over it are frosted (see-through and blurred) rather than painted in the ground colour, and a ticket's notches on the haze are real bites cut with a mask (its shadow then comes from a wrapper, since the mask would cut its own shadow off). From 960px wide, a view that marks its regions `.l-main` and `.l-aside` inside a `.layout` screen (`layout--aside-end` or `layout--aside-start`) gets two columns, with the side panel sticky and bottom bars laid out inline. On phones those regions are plain blocks in reading order, so the DOM order is the phone order. Wide screens also show the logo in every top bar. The friend view becomes a list of places (ticket stubs) beside a column of horizontal cards that you scroll through, one card per stop (CSS scroll snap; the view swaps between the phone carousel and this column when the window crosses 960px), with ˄ 2 / 5 ˅ and the actions above it. A wheel or touchpad scroll anywhere else on the page also moves one place, a soft glow in the current place's colour fills the space around the cards, and where scroll-driven animations exist the cards tip in and out like a deck; the editor shows places as a card grid with a share panel; the place form puts fields in two columns with a live preview; the welcome screen is an open hero (copy left, the sample tickets on a soft blob right); compare is label | A | B; random puts its ticket stage beside the details; bottom sheets become centred dialogs. On every size, the compare table's head row (the two places, which are also the pickers) stays pinned under the top bar; on phones the table is centred on its two columns (labels as captions, facilities as one line: check · name · check).
+**Layout:** phones get one column with a bottom bar pinned to the screen. The colours are one theme in css/tokens.css ("Sunset Horizon": an almost-white warm page, white cards, a salmon orange); shadows and brand tints use --shadow-rgb and --brand-rgb, so switching themes means editing that one block. Bars over the page are frosted (see-through and blurred) rather than painted in the ground colour, and a ticket's notches are real bites cut with a mask (its shadow then comes from a wrapper, since the mask would cut its own shadow off), so they work on any background. From 960px wide, a view that marks its regions `.l-main` and `.l-aside` inside a `.layout` screen (`layout--aside-end` or `layout--aside-start`) gets two columns, with the side panel sticky and bottom bars laid out inline. On phones those regions are plain blocks in reading order, so the DOM order is the phone order. Wide screens also show the logo in every top bar. The friend view becomes a list of places (ticket stubs) beside a column of horizontal cards that you scroll through, one card per stop (CSS scroll snap; the view swaps between the phone carousel and this column when the window crosses 960px), with ˄ 2 / 5 ˅ and the actions above it. A wheel or touchpad scroll anywhere else on the page also moves one place, a soft glow in the current place's colour fills the space around the cards, and where scroll-driven animations exist the cards tip in and out like a deck; the editor shows places as a card grid with a share panel; the place form puts fields in two columns with a live preview; the welcome screen is an open hero (copy left, the sample tickets on a soft blob right); compare is label | A | B; random puts its ticket stage beside the details; bottom sheets become centred dialogs. On every size, the compare table's head row (the two places, which are also the pickers) stays pinned under the top bar; on phones the table is centred on its two columns (labels as captions, facilities as one line: check · name · check).
 
 `main.js` re-renders on `hashchange` and on the `jk:lang` event, and puts focus back on the control with the same id. Views never re-render while the user types: they update `ctx.state` and patch the nodes that change.
 
@@ -117,7 +119,7 @@ export async function render(ctx) { /* returns an HTMLElement */ }
 
 **codec.js:** `encodeList(list) → payload` · `decodeList(payload) → List` (throws `CodecError`: `version` | `corrupt` | `unsupported`) · `sanitizeList` · `listUrl(payload)`
 
-**links.js:** `waLink(text)` (always `api.whatsapp.com/send?text=`, never `wa.me`, whose redirect breaks emoji) · `placeMessage` · `randomMessage` · `compareMessage` · `listMessage` · `isSafeMapsUrl` · `isShortMapsUrl` · `canonicalMapsUrl` (drops tracking parameters) · `parseMapsInput(text)`
+**links.js:** `waLink(text)` (always `api.whatsapp.com/send?text=`, never `wa.me`, whose redirect breaks emoji) · `placeMessage` · `randomMessage` · `compareMessage` · `listMessage` · `isSafeMapsUrl` · `isShortMapsUrl` · `canonicalMapsUrl` (drops tracking parameters) · `parseMapsInput(text)` · `isSafeWebUrl` · `canonicalWebUrl` · `parseWebLink` (a typed menu link; adds https:// to a bare one) · `linkInfo` (host and PDF-or-not, for the "Lihat menu" button)
 
 `parseMapsInput` understands everything people paste from Google Maps:
 - a full link (`google.<tld>/maps/place/<name>/…!3d<lat>!4d<lng>`, `?q=`, `/search/`): name and pin;

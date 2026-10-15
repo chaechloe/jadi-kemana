@@ -217,3 +217,24 @@ test('a rating of 0 is the same as no rating, and 0.1–5.0 round-trips', async 
     assert.equal(p.rating, x10 / 10);
   }
 });
+
+test('a menu link round-trips; old links without it and unsafe ones come back as no menu', async () => {
+  const list = sanitizeList({
+    places: [
+      { name: 'A', menu: 'https://drive.google.com/file/d/abc/view?usp=sharing' },
+      { name: 'B', menu: 'javascript:alert(1)' },
+      { name: 'C', menu: 'https://google.com@evil.example/' },
+      { name: 'D' },
+    ],
+  });
+  assert.deepEqual(list.places.map((p) => p.menu), ['https://drive.google.com/file/d/abc/view?usp=sharing', '', '', '']);
+  const back = await decodeList(await encodeList(list));
+  assert.deepEqual(back.places.map((p) => p.menu), list.places.map((p) => p.menu));
+
+  // A link from before menus existed: each place has 11 fields.
+  const old = '1j' + Buffer.from(JSON.stringify([1, 'old00001', 'Lama', '', [['Kopi', '☕', 0, '', '', 0, '', 0, [], '', '']]])).toString('base64url');
+  assert.equal((await decodeList(old)).places[0].menu, '');
+  // A crafted 12th field is checked like any other input.
+  const evil = '1j' + Buffer.from(JSON.stringify([1, 'evil0001', 'X', '', [['Kopi', '☕', 0, '', '', 0, '', 0, [], '', '', 'javascript:alert(1)']]])).toString('base64url');
+  assert.equal((await decodeList(evil)).places[0].menu, '');
+});
