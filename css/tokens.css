@@ -55,45 +55,47 @@
 /* ---- Colour ---- */
 
 :root{
+  /* Theme: "Sunset Horizon" (adapted from a Shadcn Studio theme): an almost-white warm page,
+     white cards and a salmon orange, darkened where it carries white or orange text. */
   /* grounds & surfaces */
-  --ground:#F3EAD8;      /* page */
-  --surface:#FFFCF6;     /* cards, list surfaces, sticky bars */
+  --ground:#FFFAF5;      /* page */
+  --surface:#FFFFFF;     /* cards, list surfaces */
   --raised:#FFFFFF;      /* bottom sheets, dialogs, menus */
-  --fill:#F6EEDF;        /* inputs, chips, tiles ON a surface */
-  --fill-strong:#E9DBBF; /* secondary buttons + segmented track ON ground */
-  --fill-hover:#E2D1B1;
-  --chat-wall:#EFE6D6;   /* Messages + Share chat preview only */
-  /* the page haze (warm at the top, see body::before) and the see-through bars over it */
-  --haze:#F6D3B3;
-  --haze-mid:#F4E2CC;
-  --frost:rgba(243,234,216,.72);       /* phone top bar, sticky preview */
-  --frost-pill:rgba(255,252,246,.62);  /* the floating top bar on wide screens */
+  --fill:#FFF3EC;        /* inputs, chips, tiles ON a surface */
+  --fill-strong:#FBE3D6; /* secondary buttons + segmented track ON ground */
+  --fill-hover:#F6D3C2;
+  --chat-wall:#F8EEE8;   /* Messages + Share chat preview only */
+  /* see-through bars over the page */
+  --frost:rgba(255,250,245,.78);       /* phone top bar, sticky preview */
+  --frost-pill:rgba(255,255,255,.72);  /* the floating top bar on wide screens */
   /* lines */
-  --line:#EBE1CF;        /* 1px hairline dividers (decorative) */
-  --line-dash:#D9C9AC;   /* dashed placeholders, input inset ring */
-  --line-strong:#9C8262; /* only where a 3:1 boundary is required: colour-swatch ring, checkbox */
+  --line:#F4E4DA;        /* 1px hairline dividers (decorative) */
+  --line-dash:#EBCBBB;   /* dashed placeholders, input inset ring */
+  --line-strong:#9A7D74; /* only where a 3:1 boundary is required: colour-swatch ring, checkbox (3.78 on surface) */
   /* ink */
-  --ink:#3E2C20;         /* 12.9:1 on surface, 11.1:1 on ground */
-  --ink-2:#6E5240;       /* secondary text, 5.97:1 on ground */
-  --ink-3:#806650;       /* placeholder + meta icons. Text only on surface/fill (≥4.6); NEVER as text on ground */
-  --ink-inverse:#FFFCF6;
-  --night:#2B1F17;       /* toast */
-  /* brand (orange) */
-  --brand:#C0530B;       /* fills behind white text (4.68:1) */
-  --brand-hover:#A84A0A; /* hover fill; ALSO the colour for orange text/links (4.82 on ground, 5.62 on surface) */
-  --brand-edge:#8F3D08;  /* key edge under primary; text on brand-soft (6.15) */
-  --brand-soft:#FBE7D2;
+  --ink:#3D3637;         /* 11.8:1 on surface, 11.4:1 on ground */
+  --ink-2:#675B5C;       /* secondary text, 6.27:1 on ground */
+  --ink-3:#786A6B;       /* placeholder + meta icons, 4.74 on fill, 4.97 on ground */
+  --ink-inverse:#FFFAF5;
+  --night:#2F2829;       /* toast */
+  /* brand (salmon orange) */
+  --brand:#BE522D;       /* fills behind white text (4.74:1) */
+  --brand-hover:#AA4720; /* hover fill; ALSO the colour for orange text/links (5.57 on ground, 5.78 on surface) */
+  --brand-edge:#8C3816;  /* key edge under primary; text on brand-soft (6.87) */
+  --brand-soft:#FFEDE5;
+  --brand-rgb:190,82,45; /* the brand as r,g,b for tints: rgba(var(--brand-rgb), .12) */
   /* send to group (green): ONLY for send/discuss actions */
   --go:#45752A;          /* white text 5.48:1 */
   --go-hover:#3A6423;
   --go-edge:#2F5419;
   --go-soft:#E7F2DC;     /* outgoing chat bubble; text on it --ink */
   /* semantic */
-  --danger:#B42318;      /* 6.42 on surface */
+  --danger:#B42318;      /* 6.57 on surface */
   --danger-soft:#FBE4E1; /* danger text on it 5.41 */
   --star:#B7791F;        /* rating star glyph only (3.56 as a graphic), never text */
-  --focus:#A84A0A;
-  --scrim:rgba(43,31,23,.40);
+  --focus:#AA4720;
+  --scrim:rgba(47,40,41,.40);
+  --shadow-rgb:61,54,55; /* the ink as r,g,b for shadows */
 }
 
 /* ---- Type, spacing, radius, elevation, layout ---- */
@@ -125,14 +127,14 @@
   --r-pill: 999px;
 
   /* elevation: a shadow is the only edge of an elevated element */
-  --e1: 0 0 0 1px rgba(62,44,32,.05), 0 1px 2px rgba(62,44,32,.06), 0 6px 16px -6px rgba(62,44,32,.14);
-  --e2: 0 0 0 1px rgba(62,44,32,.06), 0 12px 28px -8px rgba(62,44,32,.22);
-  --e3: 0 -8px 40px -8px rgba(62,44,32,.28);
+  --e1: 0 0 0 1px rgba(var(--shadow-rgb),.05), 0 1px 2px rgba(var(--shadow-rgb),.06), 0 6px 16px -6px rgba(var(--shadow-rgb),.14);
+  --e2: 0 0 0 1px rgba(var(--shadow-rgb),.06), 0 12px 28px -8px rgba(var(--shadow-rgb),.22);
+  --e3: 0 -8px 40px -8px rgba(var(--shadow-rgb),.28);
   --key-brand: 0 3px 0 var(--brand-edge);
   --key-go: 0 3px 0 var(--go-edge);
 
   /* rings */
-  --ring-focus: inset 0 0 0 1.5px var(--brand-hover), 0 0 0 3px rgba(192,83,11,.20);
+  --ring-focus: inset 0 0 0 1.5px var(--brand-hover), 0 0 0 3px rgba(var(--brand-rgb),.20);
   --ring-error: inset 0 0 0 1.5px var(--danger), 0 0 0 3px rgba(180,35,24,.15);
   --ring-selected: inset 0 0 0 1.5px var(--brand);
 
