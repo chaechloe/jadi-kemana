@@ -16,8 +16,9 @@ import {
   primaryButton,
   deleteRow,
   confirmDelete,
+  placeRowMeta,
 } from '../components.js';
-import { t, tc, formatRating } from '../i18n.js';
+import { t, tc } from '../i18n.js';
 import { LIMITS } from '../data.js';
 import * as store from '../store.js';
 import * as routes from '../routes.js';
@@ -41,9 +42,6 @@ const S = {
     listAria: 'Tempat di daftar ini',
     edit: 'Ubah',
     move: 'Geser {name}',
-    rating: 'Rating',
-    perksOne: '{n} fasilitas',
-    perksMany: '{n} fasilitas',
     full: 'Udah penuh, maksimal {max} tempat',
     linkLabel: 'Tempel link Google Maps',
     placeholder: 'https://maps.app.goo.gl/…',
@@ -79,9 +77,6 @@ const S = {
     listAria: 'Places in this list',
     edit: 'Edit',
     move: 'Move {name}',
-    rating: 'Rated',
-    perksOne: '{n} perk',
-    perksMany: '{n} perks',
     full: "It's full: {max} places at most",
     linkLabel: 'Paste a Google Maps link',
     placeholder: 'https://maps.app.goo.gl/…',
@@ -255,29 +250,6 @@ function changedNote(list) {
 
 // ---- place rows ----
 
-// Street-level parts (Jl./Jalan, Gg., No., RT/RW) and bare numbers are not an area name.
-const STREET_PART = /^(?:jl|jln|jalan|gg|gang|no|rt|rw)\b|^\d+$/i;
-
-/** The row's area: the first address part that isn't street-level, or '' when there is none. */
-function areaOf(address) {
-  return address
-    .split(',')
-    .map((part) => part.trim())
-    .find((part) => part && !STREET_PART.test(part)) ?? '';
-}
-
-/** "Lengkong · ★ 4.9 · 5 fasilitas", leaving out whatever the place doesn't have. */
-function placeMeta(place) {
-  const facilities = place.perks.length + place.custom.length;
-  const rating = formatRating(place.rating);
-  const parts = [
-    areaOf(place.address),
-    rating && [icon('star-filled', { size: 12, class: 'star' }), hidden(`${t(S, 'rating')} `), rating],
-    facilities > 0 && t(S, facilities === 1 ? 'perksOne' : 'perksMany', { n: facilities }),
-  ].filter(Boolean);
-  return parts.length ? parts.flatMap((part, i) => (i ? [' · ', part] : [part])) : null;
-}
-
 /** Moves a place one step and announces it; main.js puts focus back on its grip (by id). */
 function movePlace(ctx, list, from, to) {
   if (to < 0 || to >= list.places.length || to === from) return;
@@ -346,7 +318,7 @@ function placeRow(ctx, list, place, index) {
   return listRow({
     tile: placeTile(place),
     title: [hidden(`${t(S, 'edit')} `), place.name],
-    meta: placeMeta(place),
+    meta: placeRowMeta(place),
     href: routes.place(list.id, place.id),
     trail: list.places.length > 1 ? moveButton(ctx, list, index) : null,
   });

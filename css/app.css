@@ -123,7 +123,7 @@ h3 {
 
 /* On a place colour or the brand band the ring turns white. */
 :where(.band, .cover, .ticket) :focus-visible {
-  outline-color: #FFFFFF;
+  outline-color: var(--on-color);
 }
 
 /* Headings receive focus after navigation (tabindex="-1"); they are not controls, so no ring.
@@ -166,8 +166,8 @@ h3 {
   margin: 0 calc(-1 * var(--gutter));
   padding: 0 var(--gutter);
   background: var(--frost);
-  -webkit-backdrop-filter: blur(14px) saturate(1.2);
-  backdrop-filter: blur(14px) saturate(1.2);
+  -webkit-backdrop-filter: var(--frost-blur);
+  backdrop-filter: var(--frost-blur);
   transition: box-shadow 0.15s ease;
 }
 
@@ -242,7 +242,14 @@ h3 {
   background: transparent;
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
-  color: #FFFFFF;
+}
+
+/* White on the orange band. Only phones have the band: wide screens put the hero on the page. */
+@media (max-width: 959px) {
+  .topbar--band,
+  .topbar--band .wordmark {
+    color: var(--on-color);
+  }
 }
 
 .wordmark {
@@ -253,10 +260,6 @@ h3 {
   color: var(--brand-hover);
   white-space: nowrap;
   text-decoration: none;
-}
-
-.topbar--band .wordmark {
-  color: #FFFFFF;
 }
 
 .page-header {
@@ -396,12 +399,12 @@ h3 {
 
 .btn--primary {
   background: var(--brand);
-  color: #FFFFFF;
+  color: var(--on-color);
 }
 
 .btn--go {
   background: var(--go);
-  color: #FFFFFF;
+  color: var(--on-color);
 }
 
 /* Secondary sits on ground in --fill-strong and on a surface in --fill. */
@@ -510,7 +513,7 @@ h3 {
   }
 
   .btn--danger:not(:disabled, [aria-disabled="true"]):hover {
-    background: #F8D6D1;
+    background: var(--danger-hover);
   }
 }
 
@@ -540,9 +543,8 @@ h3 {
   cursor: pointer;
 }
 
-/* Tonal (sheet close, rename) and glass (on covers): a 36px circle inside the 44px hit area. */
-.iconbtn--tonal::before,
-.iconbtn--glass::before {
+/* Tonal (sheet close, rename): a 36px circle inside the 44px hit area. */
+.iconbtn--tonal::before {
   content: '';
   position: absolute;
   inset: 4px;
@@ -556,20 +558,11 @@ h3 {
   background: var(--fill);
 }
 
-.iconbtn--glass::before {
-  background: rgba(255, 255, 255, 0.92);
-}
-
-/* White glyph on a place colour or the band. */
-.iconbtn--on-color {
-  color: #FFFFFF;
-}
-
-/* Drag handle in an editor row. */
+/* The move handle in an editor row: it opens the move sheet (there's no dragging), so it keeps
+   page scrolling and a plain pointer. */
 .iconbtn--drag {
   color: var(--ink-3);
-  cursor: grab;
-  touch-action: none;
+  touch-action: manipulation;
 }
 
 @media (hover: hover) {
@@ -577,8 +570,7 @@ h3 {
     background: var(--fill);
   }
 
-  .iconbtn--tonal:hover,
-  .iconbtn--glass:hover {
+  .iconbtn--tonal:hover {
     background: transparent;
   }
 
@@ -586,13 +578,6 @@ h3 {
     background: var(--fill-hover);
   }
 
-  .iconbtn--glass:hover::before {
-    background: #FFFFFF;
-  }
-
-  .iconbtn--on-color:hover {
-    background: rgba(255, 255, 255, 0.18);
-  }
 }
 
 /* A row of equal ghost buttons divided by 1x20 hairlines ("Maps · Salin · Bagikan"). */
@@ -643,7 +628,7 @@ h3 {
 }
 
 .link--on-color {
-  color: #FFFFFF;
+  color: var(--on-color);
 }
 
 @media (hover: hover) {
@@ -702,19 +687,21 @@ h3 {
   color: var(--ink);
 }
 
-/* Dark track on the band: white text on it stays well above 4.5:1 (a white tint fell under it). */
-.seg--band {
-  background: rgba(0, 0, 0, 0.20);
-}
+/* Dark track on the band (phones): white text on it stays well above 4.5:1 (a white tint fell under it). */
+@media (max-width: 959px) {
+  .seg--band {
+    background: rgba(0, 0, 0, 0.2);
+  }
 
-.seg--band .seg__pill {
-  color: #FFFFFF;
-}
+  .seg--band .seg__pill {
+    color: var(--on-color);
+  }
 
-.seg--band .seg__btn[aria-pressed="true"] .seg__pill {
-  background: #FFFFFF;
-  box-shadow: none;
-  color: var(--brand-hover);
+  .seg--band .seg__btn[aria-pressed="true"] .seg__pill {
+    background: var(--surface);
+    box-shadow: none;
+    color: var(--brand-hover);
+  }
 }
 
 /* ==========================================================================
@@ -916,16 +903,9 @@ button.row:focus-visible {
   height: 40px;
   border-radius: var(--r-12);
   background: var(--place, var(--fill-strong));
-  color: #FFFFFF;
+  color: var(--on-color);
   font-size: 22px;
   line-height: 1;
-}
-
-.tile--32 {
-  width: 32px;
-  height: 32px;
-  border-radius: var(--r-8);
-  font-size: 18px;
 }
 
 .tile--48 {
@@ -1152,16 +1132,8 @@ button.row:focus-visible {
   padding-left: 44px;
 }
 
-/* Select chevron, 16 from the right. */
-.input-wrap--select > .icon {
-  left: auto;
-  right: 16px;
-  color: var(--ink-2);
-}
-
 /* Inputs are filled pills: --surface on the ground, --fill on a surface. */
 .input,
-.select,
 .textarea {
   display: block;
   width: 100%;
@@ -1184,7 +1156,7 @@ button.row:focus-visible {
   transition: box-shadow 0.15s ease;
 }
 
-:where(.card, .placecard, .list-surface, .sheet) :is(.input, .select, .textarea) {
+:where(.card, .placecard, .list-surface, .sheet) :is(.input, .textarea) {
   background: var(--fill);
 }
 
@@ -1195,19 +1167,16 @@ button.row:focus-visible {
 }
 
 .input:focus,
-.select:focus,
 .textarea:focus {
   box-shadow: var(--ring-focus);
 }
 
 .input:focus-visible,
-.select:focus-visible,
 .textarea:focus-visible {
   outline: none;
 }
 
 .input[aria-invalid="true"],
-.select[aria-invalid="true"],
 .textarea[aria-invalid="true"] {
   box-shadow: var(--ring-error);
 }
@@ -1215,20 +1184,12 @@ button.row:focus-visible {
 /* An invalid field keeps a visible focus indicator: the danger inset plus a stronger outer focus ring
    (the outline is off above, and the error ring alone would look the same focused or not). */
 .input[aria-invalid="true"]:focus,
-.select[aria-invalid="true"]:focus,
 .textarea[aria-invalid="true"]:focus {
   box-shadow: inset 0 0 0 1.5px var(--danger), 0 0 0 3px rgba(var(--brand-rgb), 0.35);
 }
 
 .input--num {
   font-variant-numeric: tabular-nums;
-}
-
-.select {
-  padding-right: 44px;
-  overflow: hidden;
-  white-space: nowrap;
-  cursor: pointer;
 }
 
 .textarea {
@@ -1460,7 +1421,7 @@ button.row:focus-visible {
   width: 44px;
   height: 44px;
   border-radius: var(--r-pill);
-  color: #FFFFFF;
+  color: var(--on-color);
 }
 
 .swatch::before {
@@ -1496,7 +1457,7 @@ button.row:focus-visible {
   background-color: var(--place, var(--brand));
   background-image: var(--dots);
   background-size: var(--dots-size);
-  color: #FFFFFF;
+  color: var(--on-color);
 }
 
 .cover__emoji {
@@ -1540,7 +1501,7 @@ button.row:focus-visible {
   line-height: 28px;
   font-weight: 600;
   letter-spacing: 0;
-  color: #FFFFFF;
+  color: var(--on-color);
 }
 
 .placecard {
@@ -1691,21 +1652,6 @@ button.row:focus-visible {
   justify-content: center;
 }
 
-/* Wide screens only: ‹ 2 / 5 › and the actions above the card (see the wide-screen section). */
-.friend-toolbar {
-  display: none;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .placecard__head .cover,
-  .scroll-hint {
-    transition: none;
-  }
-  .scroll-hint.is-visible > .icon {
-    animation: none;
-  }
-}
-
 .placecard__body {
   padding: var(--sp-20);
 }
@@ -1787,11 +1733,6 @@ button.row:focus-visible {
 .meta-line > .icon {
   margin-top: 2px;
   color: var(--ink-3);
-}
-
-/* On the ground the meta icon is ink-2. */
-.meta-line--ground > .icon {
-  color: var(--ink-2);
 }
 
 .meta-line__text {
@@ -1888,55 +1829,26 @@ button.row:focus-visible {
 /* A dark tint (not a white one) keeps white text at 4.5:1+ on every place colour, orange and teal included. */
 .tag--on-color {
   background: rgba(0, 0, 0, 0.18);
-  color: #FFFFFF;
+  color: var(--on-color);
 }
 
-.badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 20px;
-  height: 20px;
-  padding: 0 var(--sp-8);
-  border-radius: var(--r-pill);
-  background: var(--fill);
-  color: var(--ink-2);
-  font-size: 12px;
-  line-height: 16px;
-  font-weight: 600;
-  letter-spacing: 0.01em;
-  white-space: nowrap;
-}
-
-/* Place ticket: place colour + dots, two notches at 65% height, a perforation across.
-   --notch is the parent background (defaults to the ground). */
+/* Place ticket: place colour + dots, a perforation across, and two real notches at 65% height:
+   round bites cut with a mask (two half-width layers, one bite each), so whatever is behind the
+   ticket shows through them. The mask would cut the ticket's own shadow off too, so a wrapper
+   casts it (filter: drop-shadow(var(--ticket-shadow))). */
 .ticket {
-  --notch: var(--ground);
   position: relative;
   overflow: hidden;
   background-color: var(--place, var(--brand));
   background-image: var(--dots);
   background-size: var(--dots-size);
-  color: #FFFFFF;
-}
-
-.ticket::before,
-.ticket::after {
-  content: '';
-  position: absolute;
-  top: calc(65% - 8px);
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: var(--notch);
-}
-
-.ticket::before {
-  left: -8px;
-}
-
-.ticket::after {
-  right: -8px;
+  color: var(--on-color);
+  -webkit-mask:
+    radial-gradient(circle 8px at 0 65%, transparent 7.5px, #000 8px) left / 51% 100% no-repeat,
+    radial-gradient(circle 8px at 100% 65%, transparent 7.5px, #000 8px) right / 51% 100% no-repeat;
+  mask:
+    radial-gradient(circle 8px at 0 65%, transparent 7.5px, #000 8px) left / 51% 100% no-repeat,
+    radial-gradient(circle 8px at 100% 65%, transparent 7.5px, #000 8px) right / 51% 100% no-repeat;
 }
 
 .ticket__top {
@@ -1969,7 +1881,7 @@ button.row:focus-visible {
   line-height: 24px;
   font-weight: 600;
   letter-spacing: 0;
-  color: #FFFFFF;
+  color: var(--on-color);
 }
 
 /* Below the perforation: rating and hours in white small 600. */
@@ -2039,12 +1951,11 @@ button.row:focus-visible {
   line-height: 22px;
 }
 
-/* M: 300x112 (Main stack). */
+/* M: 300x112 (the Welcome stack, the place form showcase). */
 .ticket--m {
   width: min(300px, 100%);
   height: 112px;
   border-radius: var(--r-16);
-  box-shadow: var(--e2);
 }
 
 .ticket--m .ticket__top {
@@ -2057,7 +1968,6 @@ button.row:focus-visible {
   max-width: 350px;
   height: 320px;
   border-radius: var(--r-24);
-  box-shadow: var(--e2);
 }
 
 .ticket--l .ticket__top {
@@ -2122,7 +2032,7 @@ button.row:focus-visible {
   }
 }
 
-/* Main: three M tickets fanned over the band's lower edge, back to front. */
+/* Welcome: three M tickets fanned over the band's lower edge, back to front. */
 .ticket-stack {
   position: relative;
   width: min(300px, 100%);
@@ -2130,42 +2040,23 @@ button.row:focus-visible {
   margin: -60px auto 0;
 }
 
-/* Each ticket sits in an item that casts its shadow: the ticket's own shadow would be cut off by
-   its notch mask. */
+/* Each ticket sits in an item that casts its shadow (see .ticket). */
 .ticket-stack > * {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
-  filter: drop-shadow(0 10px 12px rgba(var(--shadow-rgb), 0.2));
+  filter: drop-shadow(var(--ticket-shadow));
 }
 
-/* Tickets on the page or a see-through bar get real notches (round bites in a mask), so whatever
-   is behind shows through; a painted circle only matches a flat background. Two half-width mask
-   layers, one bite each. */
-.ticket-stack .ticket,
-.place-form__preview .ticket,
-.place-form__showcase-ticket .ticket {
-  box-shadow: none;
-  -webkit-mask:
-    radial-gradient(circle 8px at 0 65%, transparent 7.5px, #000 8px) left / 51% 100% no-repeat,
-    radial-gradient(circle 8px at 100% 65%, transparent 7.5px, #000 8px) right / 51% 100% no-repeat;
-  mask:
-    radial-gradient(circle 8px at 0 65%, transparent 7.5px, #000 8px) left / 51% 100% no-repeat,
-    radial-gradient(circle 8px at 100% 65%, transparent 7.5px, #000 8px) right / 51% 100% no-repeat;
+.place-form__showcase-ticket,
+.pick__ticket {
+  filter: drop-shadow(var(--ticket-shadow));
 }
 
-.ticket-stack .ticket::before,
-.ticket-stack .ticket::after,
-.place-form__preview .ticket::before,
-.place-form__preview .ticket::after,
-.place-form__showcase-ticket .ticket::before,
-.place-form__showcase-ticket .ticket::after {
-  content: none;
-}
-
-.place-form__showcase-ticket {
-  filter: drop-shadow(0 10px 12px rgba(var(--shadow-rgb), 0.2));
+.pick__ticket {
+  width: 100%;
+  max-width: 350px;
 }
 
 .ticket-stack > :nth-child(1) {
@@ -2190,7 +2081,7 @@ button.row:focus-visible {
   padding: 0 var(--sp-12);
   border-radius: var(--r-pill);
   background: var(--go);
-  color: #FFFFFF;
+  color: var(--on-color);
   font-size: 12px;
   line-height: 16px;
   font-weight: 600;
@@ -2268,7 +2159,7 @@ button.row:focus-visible {
   height: 24px;
   border-radius: var(--r-pill);
   background: var(--brand);
-  color: #FFFFFF;
+  color: var(--on-color);
   font-size: 12px;
   line-height: 1;
   font-weight: 600;
@@ -2439,7 +2330,7 @@ button.row:focus-visible {
   padding: var(--sp-8) 26px var(--sp-8) var(--sp-12);
   border-radius: var(--r-16);
   background: var(--place, var(--brand));
-  color: #FFFFFF;
+  color: var(--on-color);
   text-align: center;
 }
 
@@ -2528,7 +2419,7 @@ button.row:focus-visible {
   padding: var(--sp-32) var(--sp-16);
   border-radius: 32px;
   background-color: var(--brand-soft);
-  background-image: radial-gradient(rgba(var(--brand-rgb), 0.14) 1.5px, transparent 1.6px);
+  background-image: var(--dots-brand);
   background-size: var(--dots-size);
 }
 
@@ -2706,7 +2597,7 @@ button.row:focus-visible {
 }
 
 .toast > .icon {
-  color: #FFFFFF;
+  color: var(--on-color);
 }
 
 @keyframes fade-in {
@@ -2825,7 +2716,7 @@ button.row:focus-visible {
   height: 64px;
   border-radius: var(--r-8);
   background: var(--brand);
-  color: #FFFFFF;
+  color: var(--on-color);
   overflow: hidden;
 }
 
@@ -2924,14 +2815,15 @@ button.row:focus-visible {
   isolation: isolate;
   margin: 0 calc(-1 * var(--gutter));
   padding: 0 var(--gutter) var(--band-fade);
+  background: var(--brand); /* without color-mix() */
   background: linear-gradient(
     180deg,
     var(--brand) calc(100% - var(--band-fade)),
-    rgba(208, 110, 76, 0.9) calc(100% - var(--band-fade) * 0.62),
-    rgba(245, 184, 160, 0.5) calc(100% - var(--band-fade) * 0.28),
-    rgba(255, 250, 245, 0) 100%
+    color-mix(in srgb, var(--brand) 82%, var(--ground)) calc(100% - var(--band-fade) * 0.62),
+    color-mix(in srgb, var(--brand) 38%, var(--ground)) calc(100% - var(--band-fade) * 0.28),
+    var(--ground) 100%
   );
-  color: #FFFFFF;
+  color: var(--on-color);
 }
 
 .band::before {
@@ -2952,14 +2844,14 @@ button.row:focus-visible {
   line-height: 38px;
   font-weight: 600;
   letter-spacing: -0.01em;
-  color: #FFFFFF;
+  color: var(--on-color);
 }
 
 .band__lead {
   margin-top: var(--sp-12);
   font-size: 15px;
   line-height: 22px;
-  color: #FFFFFF;
+  color: var(--on-color);
 }
 
 /* The last word of the headline, underlined by a 3px brand-soft squiggle. */
@@ -3039,10 +2931,9 @@ button.row:focus-visible {
 .clamp-3 {
   display: -webkit-box;
   overflow: hidden;
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
 }
-
-.clamp-3 { -webkit-line-clamp: 3; }
 
 .mt-4 { margin-top: var(--sp-4); }
 .mt-8 { margin-top: var(--sp-8); }
@@ -3068,10 +2959,6 @@ button.row:focus-visible {
 /* Secondary text colour (safe on the ground). */
 .muted {
   color: var(--ink-2);
-}
-
-.num {
-  font-variant-numeric: tabular-nums;
 }
 
 /* The rating star glyph. */
@@ -3198,8 +3085,8 @@ button.row:focus-visible {
   margin: 0 calc(-1 * var(--gutter));
   padding: 0 var(--gutter) var(--sp-8);
   background: var(--frost);
-  -webkit-backdrop-filter: blur(14px) saturate(1.2);
-  backdrop-filter: blur(14px) saturate(1.2);
+  -webkit-backdrop-filter: var(--frost-blur);
+  backdrop-filter: var(--frost-blur);
 }
 
 /* While typing (the on-screen keyboard takes half the screen) the preview scrolls away with the form. */
@@ -3224,7 +3111,7 @@ button.row:focus-visible {
 @property --glow {
   syntax: '<color>';
   inherits: false;
-  initial-value: #BE522D;
+  initial-value: #BE522D; /* --brand: an @property can't read var() */
 }
 
 /* ==========================================================================
@@ -3270,8 +3157,7 @@ button.row:focus-visible {
   }
 
   /* The top bar floats as a frosted pill; the page scrolls by underneath. */
-  .topbar,
-  .topbar--band {
+  .topbar {
     background: none;
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
@@ -3289,8 +3175,8 @@ button.row:focus-visible {
     border-radius: var(--r-pill);
     background: var(--frost-pill);
     box-shadow: inset 0 0 0 1px rgba(var(--shadow-rgb), 0.07), 0 8px 20px -14px rgba(var(--shadow-rgb), 0.35);
-    -webkit-backdrop-filter: blur(16px) saturate(1.3);
-    backdrop-filter: blur(16px) saturate(1.3);
+    -webkit-backdrop-filter: var(--frost-blur);
+    backdrop-filter: var(--frost-blur);
   }
 
   .page-header__title {
@@ -3420,16 +3306,14 @@ button.row:focus-visible {
   }
 
   .screen--welcome .list-surface > li,
-  .screen--editor .l-main .list-surface > li,
-  .place-picks .list-surface > li {
+  .screen--editor .l-main .list-surface > li {
     border-radius: 20px;
     background: var(--surface);
     box-shadow: var(--e1);
   }
 
-  /* ---- friend view: ticket-stub list + a horizontal card ---- */
+  /* ---- friend view: ticket-stub list + a column of horizontal cards you scroll through ---- */
   .place-picks {
-    display: block;
     padding-top: var(--sp-16);
   }
 
@@ -3474,12 +3358,6 @@ button.row:focus-visible {
 
   .place-picks .row__main[aria-current='true'] .row__title {
     color: var(--brand-edge);
-  }
-
-  .place-picks .row__meta {
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
   }
 
   /* ˄ 2 / 5 ˅ and a scroll hint on the left, Terserah! and Bandingin on the right. */
@@ -3755,29 +3633,6 @@ button.row:focus-visible {
     grid-area: bar;
   }
 
-  /* The top bar is on the page ground here, so it takes the ordinary colours. */
-  .hero .topbar--band {
-    color: var(--ink);
-  }
-
-  .hero .topbar--band .wordmark {
-    color: var(--brand-hover);
-  }
-
-  .hero .seg--band {
-    background: var(--fill-strong);
-  }
-
-  .hero .seg--band .seg__pill {
-    color: var(--ink-2);
-  }
-
-  .hero .seg--band .seg__btn[aria-pressed="true"] .seg__pill {
-    background: var(--surface);
-    box-shadow: 0 1px 2px rgba(var(--shadow-rgb), 0.14);
-    color: var(--ink);
-  }
-
   .hero .band__title {
     grid-area: title;
     max-width: 620px;
@@ -3842,7 +3697,7 @@ button.row:focus-visible {
     inset: -40px;
     border-radius: 46% 54% 50% 50% / 52% 46% 54% 48%;
     background-color: var(--brand-soft);
-    background-image: radial-gradient(rgba(var(--brand-rgb), 0.12) 1.5px, transparent 1.6px);
+    background-image: var(--dots-brand);
     background-size: var(--dots-size);
   }
 
@@ -3856,10 +3711,6 @@ button.row:focus-visible {
 
   .hero .ticket-stack > :nth-child(3) {
     transform: translate(12px, 212px) rotate(-1.5deg);
-  }
-
-  .screen--welcome .section {
-    margin-top: var(--sp-24);
   }
 
   .screen--welcome .list-surface {

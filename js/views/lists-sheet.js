@@ -1,7 +1,7 @@
 // "Daftar kamu": the list switcher sheet. Its rows and the "open a list from a link" form are
 // exported too, so the Welcome screen shows the same UI.
 import { h, icon, toast, openSheet } from '../ui.js';
-import { listRow, placeTile, placesLabel, chooseSheet } from '../components.js';
+import { listRow, placeTile, placesLabel, chooseSheet, decorative } from '../components.js';
 import { getLang, t, tc, relativeTime } from '../i18n.js';
 import { getLists, createList, importList, compareWithSaved, savedToDevice } from '../store.js';
 import { decodeList, CodecError } from '../codec.js';
@@ -48,7 +48,6 @@ const S = {
   },
 };
 
-const decorative = { 'aria-hidden': 'true' };
 
 // ---- rows ----
 

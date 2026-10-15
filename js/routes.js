@@ -1,5 +1,5 @@
 // Hash routes: the builders every view links with, and the parser main.js routes by.
-// See docs/ARCHITECTURE.md, "Router". No DOM here, so it runs under node --test.
+// See docs/ARCHITECTURE.md, "Routing and screens". No DOM here, so it runs under node --test.
 
 const FRIEND_VIEWS = { compare: 'compare', random: 'random' };
 

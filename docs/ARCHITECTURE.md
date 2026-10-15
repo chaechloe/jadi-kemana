@@ -22,19 +22,28 @@ js/links.js             WhatsApp link, message templates, Google Maps link/text 
 js/autofill.js          the place form's auto-fill decisions (no DOM, unit-tested)
 js/geo.js               approximate address from OpenStreetMap Nominatim
 js/views/*.js           one module per screen
-tests/*.test.mjs        unit tests for the pure modules: node --test "tests/*.test.mjs"
-tools/serve.mjs         zero-dependency local server (localhost only): node tools/serve.mjs
-.github/workflows/      runs the syntax check and tests on every pull request
+tests/*.test.mjs        unit tests for the pure modules (npm test runs tools/check.mjs, then these)
+tools/serve.mjs         zero-dependency local server (localhost only): npm run serve
+tools/check.mjs         syntax check of every module (part of npm test)
+.github/workflows/      runs npm test on every push to dev and main and on pull requests
+LICENSES/               full licence texts for the fonts (OFL) and icons (MIT)
+package.json            npm scripts only (serve, check, test); no dependencies
+.nojekyll               tells GitHub Pages to serve the files as they are
 ```
 
 ## Rules every module follows
 
 1. **No HTML strings with data.** Never `innerHTML`, `outerHTML`, `insertAdjacentHTML` or `document.write`. Build DOM with `h()`; text always goes in as text nodes. The one exception is `icon()`, which parses the static strings in `icons.js`.
 2. **No inline style strings.** `h()` takes `style` as an object (CSP-safe). Views use classes from `app.css`; inline style is only for the per-place colour (`{ '--place': hex }`) and truly dynamic values.
-3. **Every decoded or stored list is untrusted.** It goes through `codec.sanitizeList()`. Maps links must pass `links.isSafeMapsUrl()` and open with `target="_blank" rel="noopener"`. User text in WhatsApp messages can't carry links (schemes are stripped and domain-like dots defanged), so the Maps link stays the first link.
+3. **Every decoded or stored list is untrusted.** It goes through `codec.sanitizeList()`.
+   - Maps links must pass `links.isSafeMapsUrl()`: Google Maps hosts only, never through Google's `/url` redirector.
+   - Menu links must pass `links.isSafeWebUrl()`: http(s) to a named host, no IP address, no `user:password@`. The button always shows the site they lead to (`linkInfo`), so a look-alike can't pass for Drive.
+   - Both open with `target="_blank" rel="noopener"`.
+   - User text in WhatsApp messages can't carry links: schemes are stripped, and domain-like or IP-like dots (including full-width ones) are defanged. So the Maps link stays the first link.
+   - A pasted list link never silently replaces a saved list with the same id (`store.compareWithSaved`).
 4. **All visible copy is bilingual.** Each view declares `const S = { id: {…}, en: {…} }` with identical keys and reads it through `t(S, key, vars)`; shared labels live in `i18n.COMMON`. User-typed content is never translated.
 5. **Accessibility.** Real `<button>`, `<a href>`, `<label for>`; icon-only controls have an `aria-label`; toggles `aria-pressed`, the current item `aria-current`; targets ≥ 44px; focus moves to the screen's `h1` (`tabindex="-1"`) after navigation; `prefers-reduced-motion` is respected.
-6. **Storage can fail** (private mode, quota, iOS eviction). Every `localStorage`/`sessionStorage` access is wrapped in try/catch, and the app still works read-only from a shared link.
+6. **Storage can fail** (private mode, quota, iOS eviction). Every `localStorage`/`sessionStorage` access is wrapped in try/catch, and the app still works read-only from a shared link. A write that doesn't reach storage fires `jk:storage-failed`; `main.js` then shows a "not saved" banner, and no "saved" toast claims otherwise (`store.savedToDevice()`).
 7. **Errors are friendly and never block,** e.g. a broken link shows "Link-nya rusak atau kepotong" with a way back.
 
 ## Data model
@@ -103,19 +112,19 @@ export async function render(ctx) { /* returns an HTMLElement */ }
 // }
 ```
 
-**Layout:** phones get one column with a bottom bar pinned to the screen. The colours are one theme in css/tokens.css ("Sunset Horizon": an almost-white warm page, white cards, a salmon orange); shadows and brand tints use --shadow-rgb and --brand-rgb, so switching themes means editing that one block. Bars over the page are frosted (see-through and blurred) rather than painted in the ground colour, and a ticket's notches are real bites cut with a mask (its shadow then comes from a wrapper, since the mask would cut its own shadow off), so they work on any background. From 960px wide, a view that marks its regions `.l-main` and `.l-aside` inside a `.layout` screen (`layout--aside-end` or `layout--aside-start`) gets two columns, with the side panel sticky and bottom bars laid out inline. On phones those regions are plain blocks in reading order, so the DOM order is the phone order. Wide screens also show the logo in every top bar. The friend view becomes a list of places (ticket stubs) beside a column of horizontal cards that you scroll through, one card per stop (CSS scroll snap; the view swaps between the phone carousel and this column when the window crosses 960px), with ˄ 2 / 5 ˅ and the actions above it. A wheel or touchpad scroll anywhere else on the page also moves one place, a soft glow in the current place's colour fills the space around the cards, and where scroll-driven animations exist the cards tip in and out like a deck; the editor shows places as a card grid with a share panel; the place form puts fields in two columns with a live preview; the welcome screen is an open hero (copy left, the sample tickets on a soft blob right); compare is label | A | B; random puts its ticket stage beside the details; bottom sheets become centred dialogs. On every size, the compare table's head row (the two places, which are also the pickers) stays pinned under the top bar; on phones the table is centred on its two columns (labels as captions, facilities as one line: check · name · check).
+**Layout:** phones get one column with a bottom bar pinned to the screen. The colours are one theme in css/tokens.css ("Sunset Horizon": an almost-white warm page, white cards, a salmon orange); shadows, brand tints and dots, the frosted bars and the start band's fade all derive from its tokens, so switching themes means editing that one block (plus two values that can't read a token: --glow's initial value in app.css and theme-color in index.html). Bars over the page are frosted (see-through and blurred) rather than painted in the ground colour, and a ticket's notches are real bites cut with a mask (its shadow then comes from a wrapper, since the mask would cut its own shadow off), so they work on any background. From 960px wide, a view that marks its regions `.l-main` and `.l-aside` inside a `.layout` screen (`layout--aside-end` or `layout--aside-start`) gets two columns, with the side panel sticky and bottom bars laid out inline. On phones those regions are plain blocks in reading order, so the DOM order is the phone order. Wide screens also show the logo in every top bar. The friend view becomes a list of places (ticket stubs) beside a column of horizontal cards that you scroll through, one card per stop (CSS scroll snap; the view swaps between the phone carousel and this column when the window crosses 960px), with ˄ 2 / 5 ˅ and the actions above it. A wheel or touchpad scroll anywhere else on the page also moves one place, a soft glow in the current place's colour fills the space around the cards, and where scroll-driven animations exist the cards tip in and out like a deck; the editor shows places as a card grid with a share panel; the place form puts fields in two columns with a live preview; the welcome screen is an open hero (copy left, the sample tickets on a soft blob right); compare is label | A | B; random puts its ticket stage beside the details; bottom sheets become centred dialogs. On every size, the compare table's head row (the two places, which are also the pickers) stays pinned under the top bar; on phones the table is centred on its two columns (labels as captions, facilities as one line: check · name · check).
 
 `main.js` re-renders on `hashchange` and on the `jk:lang` event, and puts focus back on the control with the same id. Views never re-render while the user types: they update `ctx.state` and patch the nodes that change.
 
 ## Module APIs
 
-**ui.js:** `h(tag, props, ...children)` · `icon(name, { size, class })` · `uid(prefix)` · `toast(message, { icon })` · `openSheet(content, { label, onClose }) → close` · `copyText(text)` · `shareText(text)` · `copyWithToast(text, { done, failed })` · `shareOrCopy(text, { done, failed })`
+**ui.js:** `h(tag, props, ...children)` · `icon(name, { size, class })` · `uid(prefix)` · `toast(message, { icon })` · `openSheet(content, { label }) → close` · `copyText(text)` · `shareText(text)` · `copyWithToast(text, { done, failed })` · `shareOrCopy(text, { done, failed })`
 
-**components.js:** `langToggle` · `topBar` · `pageHeader` · `deadEnd` · `placeTile` · `cover` · `ticket` · `placeMetaLines` · `facilitiesList` · `noteBlock` · `sendButton` · `primaryButton` · `bottomBar` · `ghostRow` · `emptyState` · `note` · `deleteRow` · `confirmDelete` (Cancel starts focused) · `iconButton` · `listRow` · `squiggleWord` · `hidden` (visually hidden text) · `placesLabel(n)`
+**components.js:** `langToggle` · `topBar` · `pageHeader` · `deadEnd` · `placeTile` · `placeRowMeta` ("Lengkong · ★ 4.9 · 5 fasilitas") · `cover` · `ticket` · `addressLine` · `placeMetaLines` · `facilitiesList` · `noteBlock` · `menuButton` · `sendButton` · `primaryButton` · `bottomBar` · `ghostRow` · `emptyState` · `note` · `deleteRow` · `confirmDelete` · `chooseSheet` (pick one of a few actions; Cancel starts focused) · `iconButton` · `listRow` · `squiggleWord` · `hidden` (visually hidden text) · `decorative` (attrs for purely visual nodes) · `placesLabel(n)`
 
 **i18n.js:** `getLang()` (saved choice > browser language > `'id'`) · `setLang(lang)` (dispatches `jk:lang`) · `t(dict, key, vars)` · `tc(key, vars)` · `COMMON` · `formatHours` · `formatRating` · `relativeTime`
 
-**store.js:** `getLists` · `getList` · `createList` · `saveList` · `deleteList` · `upsertPlace` (a no-op when nothing changed) · `removePlace` · `movePlace` · `markShared` · `importList` · `storageOk`
+**store.js:** `getLists` · `getList` · `createList` · `saveList` · `deleteList` · `upsertPlace` (a no-op when nothing changed) · `removePlace` · `movePlace` · `markShared` · `compareWithSaved(list) → { status: 'new' | 'same' | 'different', saved }` · `importList(list, { asCopy })` · `storageOk` · `savedToDevice`
 
 **codec.js:** `encodeList(list) → payload` · `decodeList(payload) → List` (throws `CodecError`: `version` | `corrupt` | `unsupported`) · `sanitizeList` · `listUrl(payload)`
 
@@ -144,4 +153,4 @@ A line whose value is empty is left out. The Maps link is always the first link 
 
 ## Testing
 
-`node --test "tests/*.test.mjs"` covers the pure modules: codec (incl. the golden links and hostile payloads), links and Maps parsing, autofill, routes, i18n and storage. The same runs on every pull request (`.github/workflows/tests.yml`). Screens are checked by hand in a browser at phone (360–375px) and desktop widths.
+`npm test` syntax-checks every module (`tools/check.mjs`) and runs `node --test "tests/*.test.mjs"`, which covers the pure modules: codec (incl. the golden links and hostile payloads), links and Maps parsing, autofill, routes, i18n and storage. The same command runs on every push to `dev` and `main` and on pull requests (`.github/workflows/tests.yml`). Screens are checked by hand in a browser at phone (360–375px) and desktop widths.

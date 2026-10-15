@@ -11,7 +11,8 @@ import {
   sendButton,
   deadEnd,
   bottomBar,
-  hidden,
+  addressLine,
+  decorative,
 } from '../components.js';
 import { getLang, t, tc } from '../i18n.js';
 import { waLink, randomMessage } from '../links.js';
@@ -23,7 +24,6 @@ const S = {
     from: 'Dipilih dari {n} tempat di "{title}"',
     fromOne: 'Cuma ada 1 tempat di "{title}"',
     sticker: 'Pilihanku!',
-    address: 'Alamat',
     another: 'Pilih yang lain',
     details: 'Lihat detailnya',
     picked: 'Pilihan baru: {name}',
@@ -35,7 +35,6 @@ const S = {
     from: 'Picked from the {n} places in "{title}"',
     fromOne: 'There\'s only 1 place in "{title}"',
     sticker: 'My pick!',
-    address: 'Address',
     another: 'Pick another',
     details: 'See details',
     picked: 'New pick: {name}',
@@ -48,7 +47,6 @@ const S = {
 // while every new visit to this screen starts with a fresh random pick.
 const STATE_KEY = 'jkRandomPick';
 
-const decorative = { 'aria-hidden': 'true' };
 
 // ---- remembered pick ----
 
@@ -91,7 +89,7 @@ function randomIndex(count, exclude = -1) {
 // ---- pieces ----
 
 function pickTicket(place) {
-  const node = ticket(place, { size: 'l', notchBg: 'var(--brand-soft)' });
+  const node = ticket(place, { size: 'l' });
   node.classList.add('ticket--tilt');
   return node;
 }
@@ -101,17 +99,6 @@ function replay(node, className) {
   node.classList.remove(className);
   void node.offsetWidth; // flush styles so adding the class again starts a new animation
   node.classList.add(className);
-}
-
-function addressLine(place) {
-  if (!place.address) return null;
-  return h(
-    'p',
-    { class: 'meta-line' },
-    icon('map-pin', { size: 14 }),
-    hidden(`${t(S, 'address')}: `),
-    h('span', { class: 'meta-line__text' }, place.address),
-  );
 }
 
 /** Address, perks, the coordinator's note and the menu in one card; null when the place has none. */
@@ -198,7 +185,8 @@ export async function render(ctx) {
     h(
       'div',
       { class: 'pick mt-20' },
-      h('div', { class: 'pick__stage' }, card, sticker),
+      // The wrapper casts the ticket's shadow (its notches are cut out of the ticket itself).
+      h('div', { class: 'pick__stage' }, h('div', { class: 'pick__ticket' }, card), sticker),
       h(
         'div',
         { class: 'pick__side' },

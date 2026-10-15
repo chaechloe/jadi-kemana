@@ -1,11 +1,12 @@
-# Runs the syntax check and unit tests on every pull request and on main,
-# so a green tick shows up before anything is merged. No dependencies to install.
+# Runs the syntax check and unit tests (npm test, the same command as on your computer) on every
+# push to dev and main and on pull requests, so a red cross shows up before anything goes live.
+# No dependencies to install.
 name: Tests
 
 on:
   pull_request:
   push:
-    branches: [main]
+    branches: [main, dev]
 
 permissions:
   contents: read
@@ -19,7 +20,5 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 22
-      - name: Syntax check
-        run: for f in js/*.js js/views/*.js tools/*.mjs; do node --check "$f"; done
-      - name: Unit tests
-        run: node --test "tests/*.test.mjs"
+      - name: Syntax check and unit tests
+        run: npm test

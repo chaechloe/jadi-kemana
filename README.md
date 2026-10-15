@@ -29,7 +29,7 @@ Still stuck? **Surprise me** (*Terserah!* in Bahasa Indonesia) lets the app pick
 - Place cards with the address, opening hours, rating, perks (WiFi, power outlets, AC, prayer room, parking…), a note from the coordinator, and an emoji and colour per place
 - An optional menu link per place (a PDF on Google Drive, Instagram or a web page): friends tap "See the menu" and it opens right away, no download. A PDF on your phone needs to go on Google Drive first, since the app has no server to hold files
 - Paste from Google Maps to fill in the details: a place's copied info gives the name, rating, reviews and address; a full link gives the name and an approximate address
-- The place card's header stays pinned while you scroll through its perks and note, with a one-time "scroll for more" hint
+- The place card's header stays pinned while you scroll through its perks and note, with a "scroll for more" hint once per visit
 - Share a whole list (up to 20 places) as one link. Short lists fit everywhere, even Instagram DMs; longer ones still fit WhatsApp. The share screen tells you which apps your link fits.
 - **Discuss this place!** WhatsApp button, plus **Copy** and **Share** for other apps
 - Random pick and side-by-side compare
@@ -76,7 +76,7 @@ cd jadi-kemana
 node tools/serve.mjs
 ```
 
-Then open http://localhost:8080. To run the tests: `node --test "tests/*.test.mjs"`. They also run automatically on every pull request.
+Then open http://localhost:8080. To run the checks and tests: `npm test`. The same command runs automatically on GitHub for every push to `dev` and `main`.
 
 How the code is organised is described in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
@@ -106,6 +106,6 @@ Ideas and bug reports are welcome in [Issues](https://github.com/chaechloe/jadi-
 
 ## License
 
-[MIT](LICENSE) © 2026 chaechloe
+[MIT](LICENSE) © 2026 chaechloe. The fonts are under the SIL Open Font License and the icons under MIT; the full texts are in [LICENSES/](LICENSES/).
 
 Jadi Kemana? is an independent project. It isn't affiliated with or endorsed by WhatsApp, Meta, Google, LINE, Telegram, GitHub or the OpenStreetMap Foundation. All product names and trademarks belong to their owners.

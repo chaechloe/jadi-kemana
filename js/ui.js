@@ -191,7 +191,7 @@ let activeSheet = null;
  * Focus is trapped inside; Esc, the scrim, the close button and any navigation close it,
  * and focus returns to where it was. Returns close().
  */
-export function openSheet(content, { label = '', onClose } = {}) {
+export function openSheet(content, { label = '' } = {}) {
   activeSheet?.close();
 
   const app = document.getElementById('app');
@@ -235,7 +235,6 @@ export function openSheet(content, { label = '', onClose } = {}) {
     if (app) app.inert = false;
     if (activeSheet?.close === close) activeSheet = null;
     if (returnFocus instanceof HTMLElement && returnFocus.isConnected) returnFocus.focus({ preventScroll: true });
-    onClose?.();
   }
 
   closeButton.addEventListener('click', close);

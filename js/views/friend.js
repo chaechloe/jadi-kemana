@@ -21,8 +21,9 @@ import {
   placesLabel,
   listRow,
   placeTile,
+  placeRowMeta,
 } from '../components.js';
-import { getLang, t, tc, formatRating } from '../i18n.js';
+import { getLang, t, tc } from '../i18n.js';
 import { SAMPLE_ID, colorHex } from '../data.js';
 import { getList, importList, storageOk, savedToDevice } from '../store.js';
 import { waLink, placeMessage, isSafeMapsUrl } from '../links.js';
@@ -365,12 +366,8 @@ function placeBrowser(list, params) {
 
 /** The places as rows (little ticket stubs) beside the cards. */
 function placePicks(places, index, onPick) {
-  const meta = (place) => {
-    const rating = formatRating(place.rating, '', getLang());
-    return [rating && `★ ${rating}`, place.address].filter(Boolean).join(' · ');
-  };
   const rows = places.map((place, i) =>
-    listRow({ tile: placeTile(place), title: place.name, meta: meta(place), current: i === index, onClick: () => onPick(i) }),
+    listRow({ tile: placeTile(place), title: place.name, meta: placeRowMeta(place), current: i === index, onClick: () => onPick(i) }),
   );
   const buttons = rows.map((row) => row.querySelector('.row__main'));
   const node = h(
@@ -662,8 +659,9 @@ export async function render(ctx) {
     );
   }
 
-  // Phones: one column in this order, one card at a time. Wide screens: the aside (list + actions)
-  // sits left of a column of cards you scroll through.
+  // Phones: one column in this order, one card at a time, actions in the bottom bar. Wide screens:
+  // the aside (the place list) sits left of a toolbar (˄ 2 / 5 ˅, actions) over a column of cards
+  // you scroll through.
   const wide = matchMedia(WIDE).matches;
   const browser = wide ? placeStack(list, params) : placeBrowser(list, params);
   watchBreakpoint(ctx);

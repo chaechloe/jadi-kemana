@@ -1,6 +1,6 @@
-// Boot, hash router and render loop. See docs/ARCHITECTURE.md, "Router".
+// Boot, hash router and render loop. See docs/ARCHITECTURE.md, "Routing and screens".
 import { h } from './ui.js';
-import { topBar, langToggle, pageHeader, emptyState, note } from './components.js';
+import { topBar, pageHeader, emptyState, note } from './components.js';
 import { getLang, tc } from './i18n.js';
 import { decodeList, CodecError } from './codec.js';
 import { getList, savedToDevice } from './store.js';
@@ -82,7 +82,7 @@ function errorScreen(kind) {
     return h(
       'div',
       { class: 'screen screen--nobar' },
-      topBar({ back: null, end: langToggle() }),
+      topBar(),
       h('div', { class: 'stack stack--16' }, pageHeader({ title: tc(titleKey) }), emptyState({ icon: 'alert-circle', text: tc(bodyKey), action: home })),
     );
   } catch {

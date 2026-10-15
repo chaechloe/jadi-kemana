@@ -31,6 +31,7 @@ const view = (list) => ({
     custom: p.custom,
     note: p.note,
     maps: p.maps,
+    menu: p.menu,
   })),
 });
 
@@ -51,6 +52,7 @@ const EXPECTED = {
       custom: ['Ada kucing'],
       note: 'Baris satu\nbaris dua',
       maps: 'https://maps.app.goo.gl/AbC123xyz',
+      menu: '', // made before menu links existed
     },
     {
       name: 'Second',
@@ -64,6 +66,7 @@ const EXPECTED = {
       custom: [],
       note: '',
       maps: 'https://www.google.com/maps/place/Second/@-6.9,107.6,17z',
+      menu: '',
     },
   ],
 };
@@ -74,4 +77,46 @@ test('a frozen compressed v1 link still decodes exactly', async () => {
 
 test('a frozen plain v1 link still decodes exactly', async () => {
   assert.deepEqual(view(await decodeList(GOLDEN_J)), EXPECTED);
+});
+
+// Compressed ('1z') with a menu link (the 12th place field), as produced by encodeList on 2026-10-15.
+const GOLDEN_MENU_Z =
+  '1zNY5NSgQxFISvEmr9SF56pnVwKQ0D4g-I4qLJIpgYI5lkGDvjTryAKxFcCB7DvUeZE3gECYPwUZuC-mrUhFCSY-YOhGVJzmex8rmKn29x_RBBGOJkQeOIG7upOYgznysIv1-vn6COcJKkuIy2ivMiexLHNruaAwiaJfPu5a3Tkhk0PyQsFqBez2g0hLYjXBTDJm49CM_NrrsZCPfTtH48Usq1SoZSQvLytqzUXUxeObW8OB3m_YHaRv8EQyOubF7b_2e7j3cQE9DgfTQh9hhj_gA';
+
+test('a frozen link with a menu link still decodes exactly', async () => {
+  assert.deepEqual(view(await decodeList(GOLDEN_MENU_Z)), {
+    id: 'gold0002',
+    title: 'Golden menu · Uji',
+    from: 'Dita',
+    places: [
+      {
+        name: 'Warung Menu',
+        emoji: '🍜',
+        color: 'red',
+        address: 'Jl. Riau No.5, Bandung',
+        hours: '10.00–21.00',
+        rating: 4.7,
+        ratingCount: '88',
+        perks: ['cheap', 'wifi'],
+        custom: [],
+        note: 'Menu di Drive',
+        maps: 'https://maps.app.goo.gl/Gold123',
+        menu: 'https://drive.google.com/file/d/GOLD456/view',
+      },
+      {
+        name: 'Tanpa Menu',
+        emoji: '☕',
+        color: 'orange',
+        address: '',
+        hours: '',
+        rating: null,
+        ratingCount: '',
+        perks: [],
+        custom: [],
+        note: '',
+        maps: '',
+        menu: '',
+      },
+    ],
+  });
 });

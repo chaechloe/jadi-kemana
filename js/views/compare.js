@@ -2,7 +2,7 @@
 // The table's first row holds the two place heads; each one is also its picker (a native <select>
 // laid over it), and the row stays pinned under the top bar while the rows scroll beneath it.
 import { h, icon, uid, copyWithToast, shareOrCopy } from '../ui.js';
-import { topBar, pageHeader, sendButton, ghostRow, deadEnd, bottomBar, hidden } from '../components.js';
+import { topBar, pageHeader, sendButton, ghostRow, deadEnd, bottomBar, hidden, decorative } from '../components.js';
 import { getLang, t, tc, formatHours, formatRating } from '../i18n.js';
 import { PERKS, EMOJIS, colorHex } from '../data.js';
 import { waLink, compareMessage, isSafeMapsUrl, linkInfo } from '../links.js';
@@ -70,7 +70,6 @@ const S = {
 // The A/B choice lives in this history entry, so a language switch (which re-renders) keeps it.
 const STATE_KEY = 'jkComparePair';
 
-const decorative = { 'aria-hidden': 'true' };
 
 // ---- remembered choice ----
 

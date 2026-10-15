@@ -29,7 +29,7 @@ Masih bingung? Tombol **Terserah!** bakal milihin satu tempat buat kalian. Galau
 - Kartu tempat berisi alamat, jam buka, rating, fasilitas (WiFi, colokan, AC, mushola, parkir…), catatan dari koordinator, plus emoji dan warna buat tiap tempat
 - Link menu opsional per tempat (PDF di Google Drive, Instagram, atau web): teman tinggal ketuk "Lihat menu" dan langsung kebuka, nggak perlu download. PDF yang ada di HP perlu di-upload ke Google Drive dulu, karena app ini nggak punya server buat nyimpen file
 - Tempel dari Google Maps biar detailnya keisi: info tempat yang disalin ngisi nama, rating, ulasan, dan alamat; link lengkap ngisi nama dan perkiraan alamat
-- Bagian atas kartu tempat tetap nempel pas kamu scroll ke fasilitas dan catatan, plus pengingat "scroll ke bawah" sekali aja
+- Bagian atas kartu tempat tetap nempel pas kamu scroll ke fasilitas dan catatan, plus pengingat "scroll ke bawah" sekali tiap kunjungan
 - Bagikan satu daftar utuh (maksimal 20 tempat) lewat satu link. Daftar pendek muat di mana aja, termasuk DM Instagram; yang lebih panjang tetap muat di WhatsApp. Layar bagikan bakal ngasih tahu link kamu muat di app mana aja.
 - Tombol WhatsApp **Bahas tempat ini!**, plus **Salin** dan **Bagikan** buat app lain
 - Pilih tempat secara acak dan bandingin dua tempat sebelahan
@@ -76,7 +76,7 @@ cd jadi-kemana
 node tools/serve.mjs
 ```
 
-Terus buka http://localhost:8080. Buat jalanin tes: `node --test "tests/*.test.mjs"`. Tesnya juga jalan otomatis di tiap pull request.
+Terus buka http://localhost:8080. Buat jalanin cek dan tes: `npm test`. Perintah yang sama jalan otomatis di GitHub tiap ada push ke `dev` dan `main`.
 
 Susunan kodenya dijelasin di [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
@@ -106,6 +106,6 @@ Ide dan laporan bug boleh banget dikirim lewat [Issues](https://github.com/chaec
 
 ## Lisensi
 
-[MIT](LICENSE) © 2026 chaechloe
+[MIT](LICENSE) © 2026 chaechloe. Font-nya pakai SIL Open Font License dan ikonnya MIT; teks lengkapnya ada di [LICENSES/](LICENSES/).
 
 Jadi Kemana? adalah proyek independen. Proyek ini nggak berafiliasi dengan, dan nggak didukung oleh, WhatsApp, Meta, Google, LINE, Telegram, GitHub, atau OpenStreetMap Foundation. Semua nama produk dan merek dagang adalah milik pemiliknya masing-masing.

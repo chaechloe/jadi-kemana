@@ -1,5 +1,5 @@
 // Shared visual building blocks. Everything is built with h(); classes come from css/app.css.
-// See docs/ARCHITECTURE.md ("components.js" and "CSS class catalogue").
+// See docs/ARCHITECTURE.md ("Modules", components.js).
 import { h, icon, openSheet } from './ui.js';
 import { getLang, setLang, t, tc, formatHours, formatRating } from './i18n.js';
 import { PERKS, EMOJIS, colorHex } from './data.js';
@@ -9,6 +9,9 @@ const S = {
   id: {
     language: 'Bahasa',
     address: 'Alamat',
+    ratedLabel: 'Rating',
+    perksOne: '{n} fasilitas',
+    perksMany: '{n} fasilitas',
     hours: 'Jam buka',
     rating: 'Rating {r}',
     ratingCount: 'Rating {r}, {n} ulasan',
@@ -18,6 +21,9 @@ const S = {
   en: {
     language: 'Language',
     address: 'Address',
+    ratedLabel: 'Rated',
+    perksOne: '{n} perk',
+    perksMany: '{n} perks',
     hours: 'Hours',
     rating: 'Rated {r}',
     ratingCount: 'Rated {r} across {n} reviews',
@@ -32,7 +38,8 @@ const SVG_NS = 'http://www.w3.org/2000/svg';
 
 const placeStyle = (place) => ({ '--place': colorHex(place.color) });
 const emojiOf = (place) => place.emoji || EMOJIS[0];
-const decorative = { 'aria-hidden': 'true' };
+/** attrs for a purely visual element that screen readers skip. */
+export const decorative = { 'aria-hidden': 'true' };
 
 /** Text for screen readers only. */
 export const hidden = (text) => h('span', { class: 'visually-hidden' }, text);
@@ -114,7 +121,7 @@ function watchScroll(bar) {
  * 56px top app bar. Left: a back button (when `back` is a hash), then `start`; with neither, the
  * wordmark. Right: `end`, or the language toggle when `end` is left out (pass null for nothing).
  */
-export function topBar({ back = null, backLabel, start, end, band = false } = {}) {
+export function topBar({ back = null, start, end, band = false } = {}) {
   const lead = [];
   // Wide screens show the logo on every screen (a link home); CSS hides it on phones.
   if (back || start) {
@@ -127,7 +134,7 @@ export function topBar({ back = null, backLabel, start, end, band = false } = {}
       ),
     );
   }
-  if (back) lead.push(iconButton({ icon: 'arrow-left', label: backLabel || tc('back'), href: back }));
+  if (back) lead.push(iconButton({ icon: 'arrow-left', label: tc('back'), href: back }));
   if (start) lead.push(start);
   else if (!back) lead.push(h('span', { class: 'wordmark' }, tc('appName')));
 
@@ -175,12 +182,8 @@ export function deadEnd({ back, title, meta, metaIcon, icon: name, text, label }
 // ---- place visuals ----
 
 /** Rounded-square tile in the place colour with its emoji. Sizes: 32, 40, 48, 56. */
-export function placeTile(place, { size = 40 } = {}) {
-  return h(
-    'span',
-    { class: ['tile', size !== 40 && `tile--${size}`], style: placeStyle(place), attrs: decorative },
-    emojiOf(place),
-  );
+export function placeTile(place) {
+  return h('span', { class: 'tile', style: placeStyle(place), attrs: decorative }, emojiOf(place));
 }
 
 /** Star + value + (count) on a cover; null without a rating. */
@@ -240,14 +243,14 @@ function ticketHours(place, size) {
 }
 
 /**
- * The signature ticket. size 's' (72px live preview), 'm' (300x112, Main stack) or 'l' (350x320, Random).
- * notchBg: the parent's background colour for the notches (defaults to the ground).
+ * The signature ticket. size 's' (72px live preview), 'm' (300x112: the Welcome stack and the place
+ * form's showcase) or 'l' (350x320, Random). Its notches are cut out, so its shadow comes from a
+ * wrapper (see .ticket in app.css).
  * trail: an optional node at the end of the bottom row (e.g. a .go-pill); it replaces the hours.
  * Random adds the classes ticket--tilt and ticket--deal to the returned node.
  */
-export function ticket(place, { size = 'm', notchBg, trail } = {}) {
+export function ticket(place, { size = 'm', trail } = {}) {
   const style = placeStyle(place);
-  if (notchBg) style['--notch'] = notchBg;
   const overline = placeOverline(place);
 
   const emoji = h('span', { class: 'tile tile--48 tile--glass', attrs: decorative }, emojiOf(place));
@@ -283,20 +286,47 @@ function hoursLine(place) {
   return h('p', { class: 'meta-line' }, clock, mapsLink(place.maps, tc('missingHours')));
 }
 
+/** The address as a meta line (pin icon, "Alamat:" for screen readers); null without one. */
+export function addressLine(place, { clamp = false } = {}) {
+  if (!place.address) return null;
+  return h(
+    'p',
+    { class: 'meta-line' },
+    icon('map-pin', { size: 14 }),
+    hidden(`${t(S, 'address')}: `),
+    h('span', { class: ['meta-line__text', clamp && 'meta-line__text--clamp'] }, place.address),
+  );
+}
+
+// Street-level parts (Jl./Jalan, Gg., No., RT/RW) and bare numbers are not an area name.
+const STREET_PART = /^(?:jl|jln|jalan|gg|gang|no|rt|rw)\b|^\d+$/i;
+
+/** A place's area: the first address part that isn't street-level, or '' when there is none. */
+function areaOf(address) {
+  return address
+    .split(',')
+    .map((part) => part.trim())
+    .find((part) => part && !STREET_PART.test(part)) ?? '';
+}
+
+/**
+ * A place row's meta line, "Lengkong · ★ 4.9 · 5 fasilitas", leaving out whatever the place
+ * doesn't have (null when that's everything). The star is a picture; screen readers hear "Rating".
+ */
+export function placeRowMeta(place) {
+  const facilities = place.perks.length + place.custom.length;
+  const rating = formatRating(place.rating, '', getLang());
+  const parts = [
+    areaOf(place.address),
+    rating && [icon('star-filled', { size: 12, class: 'star' }), hidden(`${t(S, 'ratedLabel')} `), rating],
+    facilities > 0 && t(S, facilities === 1 ? 'perksOne' : 'perksMany', { n: facilities }),
+  ].filter(Boolean);
+  return parts.length ? parts.flatMap((part, i) => (i ? [' · ', part] : [part])) : null;
+}
+
 /** Address (2 lines max) and hours lines; missing hours link to Maps. Null when there is neither. */
 export function placeMetaLines(place) {
-  const lines = [];
-  if (place.address) {
-    lines.push(
-      h(
-        'p',
-        { class: 'meta-line' },
-        icon('map-pin', { size: 14 }),
-        hidden(`${t(S, 'address')}: `),
-        h('span', { class: 'meta-line__text meta-line__text--clamp' }, place.address),
-      ),
-    );
-  }
+  const lines = [addressLine(place, { clamp: true })];
   lines.push(hoursLine(place));
   const shown = lines.filter(Boolean);
   return shown.length ? h('div', { class: 'meta-lines' }, shown) : null;
@@ -357,13 +387,13 @@ export function sendButton({ href, label, size = 'lg' } = {}) {
  * it leads ("drive.google.com", "PDF · example.com") so nobody taps into the unknown. Null without
  * a safe link.
  */
-export function menuButton(url, { block = true } = {}) {
+export function menuButton(url) {
   const info = url ? linkInfo(url) : null;
   if (!info) return null;
   return h(
     'a',
     {
-      class: ['btn', 'btn--secondary', 'menu-link', block && 'btn--block'],
+      class: 'btn btn--secondary btn--block menu-link',
       attrs: { href: info.href, target: '_blank', rel: 'noopener noreferrer' },
     },
     icon('book', { size: 18 }),
@@ -477,18 +507,17 @@ export function chooseSheet({ title, body, choices }) {
 // ---- extras used by several screens ----
 
 /**
- * 44px icon button (<a> with href, else <button>). variant: 'tonal' | 'glass' | 'on-color' | 'drag'.
- * The glyph is 22px, 18px for tonal/glass and 20px for drag, unless `size` is given.
+ * 44px icon button (<a> with href, else <button>). variant: 'tonal' (a filled circle) or 'drag'.
+ * The glyph is 22px, 18px for tonal and 20px for drag.
  */
-export function iconButton({ icon: name, label, href, onClick, variant, size, pressed, attrs = {} } = {}) {
-  const small = variant === 'tonal' || variant === 'glass';
-  const glyph = size ?? (small ? 18 : variant === 'drag' ? 20 : 22);
+export function iconButton({ icon: name, label, href, onClick, variant, attrs = {} } = {}) {
+  const glyph = variant === 'tonal' ? 18 : variant === 'drag' ? 20 : 22;
   const base = href ? { href } : { type: 'button' };
   return h(
     href ? 'a' : 'button',
     {
       class: ['iconbtn', variant && `iconbtn--${variant}`],
-      attrs: { ...base, 'aria-label': label, 'aria-pressed': pressed, ...attrs },
+      attrs: { ...base, 'aria-label': label, ...attrs },
       on: { click: onClick },
     },
     icon(name, { size: glyph }),
