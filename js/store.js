@@ -3,9 +3,10 @@
 // copy keeps the session working.
 import { LIMITS, SAMPLE_ID, newId } from './data.js';
 import { sanitizeList } from './codec.js';
+import { storageKey } from './config.js';
 
-const KEY = 'jk.v1.lists';
-const PROBE = 'jk.v1.probe';
+const KEY = storageKey('v1.lists');
+const PROBE = storageKey('v1.probe');
 
 let memory = [];
 // Set once a write fails; from then on the in-memory copy is the source of truth.
@@ -123,6 +124,28 @@ export function saveList(list, { touch = true } = {}) {
 
 export function deleteList(id) {
   writeAll(readAll().filter((list) => list.id !== id));
+}
+
+/**
+ * A copy of a list under a fresh id (places get fresh ids too), its title plus `suffix`, not
+ * shared yet: for reusing last week's list. Returns the copy, or null when the list is missing.
+ */
+export function duplicateList(id, { suffix = '' } = {}) {
+  const lists = readAll();
+  const list = lists.find((l) => l.id === id);
+  if (!list) return null;
+  const now = Date.now();
+  const copy = sanitizeList({
+    ...list,
+    id: freshId(lists),
+    title: list.title ? `${list.title}${suffix}` : '',
+    places: list.places.map(({ id: placeId, ...place }) => place),
+    createdAt: now,
+    updatedAt: now,
+    sharedAt: null,
+  });
+  writeAll([copy, ...lists]);
+  return copy;
 }
 
 /**

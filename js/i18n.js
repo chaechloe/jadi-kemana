@@ -1,6 +1,7 @@
 // Language state, shared strings and locale-aware formatting.
+import { storageKey } from './config.js';
 
-const LANG_KEY = 'jk.lang';
+const LANG_KEY = storageKey('lang');
 const LANGS = ['id', 'en'];
 
 let current = null;
@@ -69,6 +70,7 @@ export const COMMON = {
     errGenericTitle: 'Waduh, ada yang error',
     errGenericBody: 'Coba lagi sebentar ya.',
     errStorage: 'Browser ini nggak bisa nyimpen daftar. Link yang udah dibagikan tetep bisa dibuka.',
+    inAppBrowser: 'Kamu lagi buka ini di dalam app lain. Biar daftarnya nggak hilang, buka di browser (menu ⋯ › Buka di browser).',
     errNotSaved: 'Perubahan terakhir nggak kesimpan di perangkat ini (penyimpanannya penuh atau diblokir). Bagikan link-nya biar nggak hilang.',
     errNotFound: 'Daftar ini nggak ketemu di perangkat ini.',
     goHome: 'Ke halaman awal',
@@ -167,6 +169,7 @@ export const COMMON = {
     errGenericTitle: 'Something went wrong',
     errGenericBody: 'Give it another try in a moment.',
     errStorage: "This browser can't save lists. Shared links still open fine.",
+    inAppBrowser: "You're inside another app's browser. To keep your lists, open this in your browser (⋯ menu › Open in browser).",
     errNotSaved: "Your last change couldn't be saved on this device (storage is full or blocked). Share the link so it isn't lost.",
     errNotFound: "We couldn't find this list on this device.",
     goHome: 'Go to the home page',

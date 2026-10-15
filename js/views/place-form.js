@@ -32,6 +32,7 @@ import {
   statusMessage,
 } from '../autofill.js';
 import * as routes from '../routes.js';
+import { storageKey } from '../config.js';
 
 const S = {
   id: {
@@ -160,7 +161,7 @@ const S = {
   },
 };
 
-const PREFILL_KEY = 'jk.prefill';
+const PREFILL_KEY = storageKey('prefill');
 const OSM_CREDIT_URL = 'https://www.openstreetmap.org/copyright';
 const HOURS_PRESETS = ['08.00–22.00', '10.00–22.00', 'open24'];
 const COUNT_DIGITS = 9;

@@ -36,6 +36,10 @@ Still stuck? **Surprise me** (*Terserah!* in Bahasa Indonesia) lets the app pick
 - Bahasa Indonesia and English, switchable on every screen
 - A proper laptop layout: two columns, e.g. the list of places beside the cards, which you scroll through one place at a time
 - Reopen a list from its link, for example after your browser cleared its data
+- Friends see when a list last changed, and a copy saved on their device can be updated from a newer link (never overwritten without asking)
+- Duplicate a list to reuse it, for example for next week's hangout
+- Works offline once opened, and always loads the newest version; can be added to the Home Screen like an app
+- A link preview with an image when a list is shared in chat
 
 ## Privacy: no accounts, no database
 
@@ -57,11 +61,25 @@ Opening hours and perks are always yours to fill in, with quick presets.
 
 ## Use it as your own template
 
-1. Click **Fork** at the top of this page (keep the fork public: GitHub Pages is free for public repos).
-2. In your fork, open **Settings → Pages**. Under **Build and deployment**, choose **Deploy from a branch**, pick `main` and `/ (root)`, and click **Save**.
-3. After a minute or two your copy is live at `https://<your-username>.github.io/jadi-kemana/`.
+1. Click **Use this template → Create a new repository** at the top of this page. Pick any name and keep it **public** (GitHub Pages is free for public repos). A **Fork** works too; in a fork, also turn on the tests under the **Actions** tab.
+2. In your copy, open **Settings → Pages**. Under **Build and deployment**, choose **Deploy from a branch**, pick `main` and `/ (root)`, and click **Save**.
+3. After a minute or two your copy is live at `https://<your-username>.github.io/<repo-name>/`. A repo named `<your-username>.github.io` is served at `https://<your-username>.github.io/` itself.
 
-Want to make it yours? The example list is in `js/data.js` (`sampleList`), the colours and fonts are in `css/tokens.css`, and the shared texts are in `js/i18n.js` (each screen keeps its own texts at the top of its file in `js/views/`). Settings, such as turning off the OpenStreetMap address lookup if your copy gets busy, are in `js/config.js`.
+### Make it yours
+
+| What | Where |
+|---|---|
+| **Your site's address** in link previews | `index.html`: `og:url` and `og:image` (they must be full https addresses) |
+| Name and description | `index.html` (title, description, `og:` tags, the no-JavaScript text), `appName` in `js/i18n.js`, and `manifest.webmanifest` |
+| Logo, icons and the link-preview image | `assets/icons/` and `assets/og-image.png` (1200×630) |
+| Colours and fonts | the one colour block in `css/tokens.css` (also update `theme-color` in `index.html` and the colours in `manifest.webmanifest`) |
+| The example list | `sampleList` in `js/data.js` (its notes and custom facilities are `{ id, en }` pairs) |
+| Texts | `js/i18n.js` for shared ones; each screen keeps its own at the top of its file in `js/views/` |
+| Settings | `js/config.js`: the OpenStreetMap address lookup on or off, and `storagePrefix` (give a second copy on the same GitHub account its own prefix, or the two share their saved lists) |
+| This README and the licence | Swap the links to this repo for yours; in `LICENSE`, keep the original notice and add your name |
+
+> [!WARNING]
+> Facilities and colours are saved in links by their **position** in `PERKS` and `COLORS` (`js/data.js`). Only ever add new ones at the end: reordering or removing them changes the places in links people already shared. `npm test` (`tests/golden.test.mjs`) catches it.
 
 > [!IMPORTANT]
 > Every shared list link contains your site's address. If you rename the repo or your GitHub username after sharing links, those links stop working, so pick the name before you share.
@@ -96,8 +114,8 @@ How the code is organised is described in [docs/ARCHITECTURE.md](docs/ARCHITECTU
 - [x] Google Maps link auto-fill (place name + approximate address)
 - [x] A setup guide for people using it as a template
 - [ ] Testing on real phones and in WhatsApp
-- [ ] A nicer link preview (image) when a list is shared in chat
-- [ ] Install to Home Screen and offline support
+- [x] A nicer link preview (image) when a list is shared in chat
+- [x] Install to Home Screen and offline support
 - [ ] Reading short `maps.app.goo.gl` links automatically
 
 ## Contributing

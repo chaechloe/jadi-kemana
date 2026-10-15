@@ -2,10 +2,10 @@
 // Data © OpenStreetMap contributors (ODbL); views show the credit when it is used.
 import { getLang } from './i18n.js';
 import { LIMITS } from './data.js';
-import { CONFIG } from './config.js';
+import { CONFIG, storageKey } from './config.js';
 
 const ENDPOINT = 'https://nominatim.openstreetmap.org/reverse';
-const CACHE_KEY = 'jk.v1.geo';
+const CACHE_KEY = storageKey('v1.geo');
 const CACHE_MAX = 100;
 const TIMEOUT_MS = 8000;
 const MIN_GAP_MS = 1000; // Nominatim usage policy: at most 1 request per second

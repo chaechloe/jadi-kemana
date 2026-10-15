@@ -236,3 +236,19 @@ test('dropUntouchedLists removes started-and-left lists only', () => {
   assert.equal(ids.includes(empty.id), false);
   for (const kept of [named, sender, withPlace]) assert.ok(ids.includes(kept.id));
 });
+
+test('duplicateList makes an unshared copy with new ids', () => {
+  const mine = store.createList({ title: 'Nongkrong Sabtu', from: 'Rani' });
+  store.upsertPlace(mine.id, place('Kopi A'));
+  store.markShared(mine.id);
+  const original = store.getList(mine.id);
+  const copy = store.duplicateList(mine.id, { suffix: ' (salinan)' });
+  assert.notEqual(copy.id, mine.id);
+  assert.equal(copy.title, 'Nongkrong Sabtu (salinan)');
+  assert.equal(copy.from, 'Rani');
+  assert.equal(copy.sharedAt, null);
+  assert.equal(copy.places.length, 1);
+  assert.notEqual(copy.places[0].id, original.places[0].id);
+  assert.deepEqual(store.getList(mine.id), original, 'the original is untouched');
+  assert.equal(store.duplicateList('missing1'), null);
+});

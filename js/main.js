@@ -189,4 +189,12 @@ document.documentElement.lang = getLang();
 window.addEventListener('hashchange', () => render({ navigated: true }));
 window.addEventListener('jk:lang', () => render({ navigated: false }));
 window.addEventListener('jk:storage-failed', showNotSaved);
+
+// Offline use and clean updates (sw.js), on the live https site. On localhost only with ?sw=1 in
+// the address: a worker there would also catch any other project served on the same port.
+// updateViaCache 'none': the browser checks sw.js itself on every visit.
+const swAllowed = location.protocol === 'https:' || new URLSearchParams(location.search).has('sw');
+if ('serviceWorker' in navigator && swAllowed) {
+  navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).catch(() => {});
+}
 render({ navigated: false });

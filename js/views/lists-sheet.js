@@ -12,7 +12,6 @@ const S = {
     listMeta: '{places} · {edited}',
     openFromLink: 'Buka daftar dari link',
     linkLabel: 'Tempel link daftar',
-    linkPlaceholder: 'https://…/jadi-kemana/#d=…',
     open: 'Buka',
     footer: 'Daftar cuma disimpan di perangkat ini. Link yang udah kamu bagikan bisa dibuka lagi kapan aja.',
     opened: 'Daftar dibuka',
@@ -21,6 +20,7 @@ const S = {
     conflictTitle: 'Daftar ini udah ada di perangkat ini',
     conflictBody: 'Isi link ini beda sama yang kesimpan. Kalau diganti, perubahan yang belum kamu bagikan bakal hilang.',
     keepBoth: 'Simpan sebagai daftar baru',
+    versions: 'Versi link: {link} · Versi kamu: {mine}',
     replace: 'Ganti pakai versi link',
     errEmpty: 'Tempel dulu link daftarnya ya.',
     errNotLink: 'Ini bukan link daftar. Coba salin lagi dari chat-nya ya.',
@@ -31,7 +31,6 @@ const S = {
     listMeta: '{places} · {edited}',
     openFromLink: 'Open a list from a link',
     linkLabel: 'Paste the list link',
-    linkPlaceholder: 'https://…/jadi-kemana/#d=…',
     open: 'Open',
     footer: "Lists are only saved on this device. Any link you've shared can be opened again anytime.",
     opened: 'List opened',
@@ -40,6 +39,7 @@ const S = {
     conflictTitle: 'This list is already on this device',
     conflictBody: "This link doesn't match the saved list. Replacing it loses any changes you haven't shared yet.",
     keepBoth: 'Save as a new list',
+    versions: 'Link version: {link} · Yours: {mine}',
     replace: 'Replace with the link version',
     errEmpty: 'Paste the list link first.',
     errNotLink: "This isn't a list link. Try copying it from the chat again.",
@@ -194,7 +194,7 @@ export function linkImportItem(ctx, { close } = {}) {
       autocapitalize: 'off',
       spellcheck: 'false',
       enterkeyhint: 'go',
-      placeholder: t(S, 'linkPlaceholder'),
+      placeholder: `${location.host}${location.pathname}#d=…`,
     },
     on: { input: onInput },
   });
@@ -262,13 +262,18 @@ export function linkImportItem(ctx, { close } = {}) {
       toastAfterRender(savedToDevice() ? message : tc('errNotSaved'));
       ctx.nav(routes.list(list.id));
     };
-    const { status } = compareWithSaved(result.list);
+    const { status, saved } = compareWithSaved(result.list);
     if (status === 'same') open(result.list, t(S, 'opened'));
     else if (status === 'new') open(importList(result.list).list, t(S, 'opened'));
     else {
       chooseSheet({
         title: t(S, 'conflictTitle'),
-        body: h('p', { class: 'muted' }, t(S, 'conflictBody')),
+        body: [
+          h('p', { class: 'muted' }, t(S, 'conflictBody')),
+          // Links made since lists carry their time say which version is newer.
+          result.list.linkTime &&
+            h('p', { class: 'hint mt-8' }, t(S, 'versions', { link: relativeTime(result.list.linkTime, getLang()), mine: relativeTime(saved.updatedAt, getLang()) })),
+        ],
         choices: [
           { label: t(S, 'keepBoth'), icon: 'copy', onChoose: () => open(importList(result.list, { asCopy: true }).list, t(S, 'savedCopy')) },
           { label: t(S, 'replace'), icon: 'refresh', variant: 'btn--danger', onChoose: () => open(importList(result.list).list, t(S, 'updated')) },

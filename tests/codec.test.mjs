@@ -238,3 +238,18 @@ test('a menu link round-trips; old links without it and unsafe ones come back as
   const evil = '1j' + Buffer.from(JSON.stringify([1, 'evil0001', 'X', '', [['Kopi', '☕', 0, '', '', 0, '', 0, [], '', '', 'javascript:alert(1)']]])).toString('base64url');
   assert.equal((await decodeList(evil)).places[0].menu, '');
 });
+
+test('a link carries when its list last changed; older links and odd values give null', async () => {
+  const changed = Date.UTC(2026, 9, 14, 8, 30);
+  const list = sanitizeList({ title: 'Waktu', places: [{ name: 'A' }], createdAt: changed - 1000, updatedAt: changed });
+  const back = await decodeList(await encodeList(list));
+  assert.equal(back.linkTime, changed);
+  assert.equal(back.updatedAt, changed);
+
+  const raw = (extra) =>
+    '1j' + Buffer.from(JSON.stringify([1, 'time0001', 'T', '', [['A', '☕', 0, '', '', 0, '', 0, [], '', '']], ...extra])).toString('base64url');
+  assert.equal((await decodeList(raw([]))).linkTime, null, 'a link from before the time field');
+  for (const odd of ['yesterday', -5, 0, Date.UTC(2020, 0, 1), Date.now() + 7 * 24 * 3600 * 1000, 1e20]) {
+    assert.equal((await decodeList(raw([odd]))).linkTime, null, String(odd));
+  }
+});

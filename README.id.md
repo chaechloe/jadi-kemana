@@ -36,6 +36,10 @@ Masih bingung? Tombol **Terserah!** bakal milihin satu tempat buat kalian. Galau
 - Bahasa Indonesia dan Inggris, bisa diganti di tiap layar
 - Tampilan khusus laptop: dua kolom, misalnya daftar tempat di samping kartu-kartunya, yang tinggal di-scroll satu per satu
 - Buka lagi daftar dari link-nya, misalnya kalau data browser kamu kehapus
+- Teman bisa lihat kapan daftarnya terakhir diubah, dan salinan di perangkat mereka bisa diperbarui dari link yang lebih baru (nggak pernah ketimpa tanpa ditanya)
+- Duplikat daftar buat dipakai lagi, misalnya buat nongkrong minggu depan
+- Bisa dibuka offline setelah pernah dibuka, dan selalu pakai versi terbaru; bisa dipasang di layar utama kayak app
+- Pratinjau link pakai gambar pas daftar dibagikan di chat
 
 ## Privasi: tanpa akun, tanpa database
 
@@ -57,11 +61,25 @@ Jam buka dan fasilitas selalu kamu isi sendiri, ada pilihan cepatnya.
 
 ## Jadiin template sendiri
 
-1. Klik **Fork** di bagian atas halaman ini (biarin fork-nya tetap publik, soalnya GitHub Pages gratis buat repo publik).
-2. Di fork kamu, buka **Settings → Pages**. Di bagian **Build and deployment**, pilih **Deploy from a branch**, pilih `main` dan `/ (root)`, terus klik **Save**.
-3. Tunggu semenit-dua, versi kamu udah online di `https://<username-kamu>.github.io/jadi-kemana/`.
+1. Klik **Use this template → Create a new repository** di bagian atas halaman ini. Namanya bebas, dan biarin tetap **publik** (GitHub Pages gratis buat repo publik). Pakai **Fork** juga bisa; kalau fork, nyalain juga tesnya di tab **Actions**.
+2. Di salinan kamu, buka **Settings → Pages**. Di bagian **Build and deployment**, pilih **Deploy from a branch**, pilih `main` dan `/ (root)`, terus klik **Save**.
+3. Tunggu semenit-dua, versi kamu udah online di `https://<username-kamu>.github.io/<nama-repo>/`. Repo yang namanya `<username-kamu>.github.io` tampil langsung di `https://<username-kamu>.github.io/`.
 
-Mau diubah sesuai selera? Daftar contohnya ada di `js/data.js` (`sampleList`), warna dan font di `css/tokens.css`, dan teks yang dipakai bareng ada di `js/i18n.js` (tiap layar nyimpen teksnya sendiri di bagian atas file-nya di `js/views/`). Pengaturan, misalnya matiin pencarian alamat OpenStreetMap kalau versi kamu lagi rame dipakai, ada di `js/config.js`.
+### Bikin jadi punya kamu
+
+| Apa | Di mana |
+|---|---|
+| **Alamat situs kamu** buat pratinjau link | `index.html`: `og:url` dan `og:image` (harus alamat https lengkap) |
+| Nama dan deskripsi | `index.html` (judul, deskripsi, tag `og:`, teks kalau JavaScript mati), `appName` di `js/i18n.js`, dan `manifest.webmanifest` |
+| Logo, ikon, dan gambar pratinjau link | `assets/icons/` dan `assets/og-image.png` (1200×630) |
+| Warna dan font | satu blok warna di `css/tokens.css` (ganti juga `theme-color` di `index.html` dan warna di `manifest.webmanifest`) |
+| Daftar contoh | `sampleList` di `js/data.js` (catatan dan fasilitas tambahannya berupa pasangan `{ id, en }`) |
+| Teks | `js/i18n.js` buat teks bersama; tiap layar nyimpen teksnya sendiri di bagian atas file-nya di `js/views/` |
+| Pengaturan | `js/config.js`: pencarian alamat OpenStreetMap nyala atau mati, dan `storagePrefix` (kasih salinan kedua di akun GitHub yang sama prefix sendiri, biar daftar yang kesimpan nggak kecampur) |
+| README ini dan lisensinya | Ganti link ke repo ini jadi punya kamu; di `LICENSE`, biarin catatan aslinya dan tambahin nama kamu |
+
+> [!WARNING]
+> Fasilitas dan warna disimpan di link berdasarkan **urutannya** di `PERKS` dan `COLORS` (`js/data.js`). Tambahin yang baru di paling akhir aja: kalau urutannya diubah atau ada yang dihapus, tempat di link yang udah dibagikan ikut berubah. `npm test` (`tests/golden.test.mjs`) bakal nangkep ini.
 
 > [!IMPORTANT]
 > Tiap link daftar yang dibagikan nyimpen alamat situs kamu. Kalau nama repo atau username GitHub kamu diganti setelah link-nya dibagikan, link-link itu nggak bakal jalan lagi. Jadi tentuin namanya dulu sebelum mulai bagiin link.
@@ -96,8 +114,8 @@ Susunan kodenya dijelasin di [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 - [x] Isi otomatis dari link Google Maps (nama tempat + perkiraan alamat)
 - [x] Panduan setup buat yang mau pakai sebagai template
 - [ ] Dites di HP beneran dan di WhatsApp
-- [ ] Tampilan pratinjau link (gambar) yang lebih cakep pas daftar dibagikan di chat
-- [ ] Pasang di layar utama dan bisa dipakai offline
+- [x] Tampilan pratinjau link (gambar) yang lebih cakep pas daftar dibagikan di chat
+- [x] Pasang di layar utama dan bisa dipakai offline
 - [ ] Baca link pendek `maps.app.goo.gl` secara otomatis
 
 ## Ikut berkontribusi

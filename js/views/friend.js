@@ -22,12 +22,14 @@ import {
   listRow,
   placeTile,
   placeRowMeta,
+  inAppBrowserNote,
 } from '../components.js';
-import { getLang, t, tc } from '../i18n.js';
-import { SAMPLE_ID, colorHex } from '../data.js';
-import { getList, importList, storageOk, savedToDevice } from '../store.js';
+import { getLang, t, tc, relativeTime } from '../i18n.js';
+import { colorHex } from '../data.js';
+import { importList, storageOk, savedToDevice, compareWithSaved, getList } from '../store.js';
 import { waLink, placeMessage, isSafeMapsUrl } from '../links.js';
 import * as routes from '../routes.js';
+import { storageKey } from '../config.js';
 
 const S = {
   id: {
@@ -51,6 +53,12 @@ const S = {
     save: 'Simpan ke perangkat ini',
     toastSaved: 'Daftar disimpan di perangkat ini',
     onPhone: 'Daftar ini udah ada di perangkat ini.',
+    differs: 'Yang kesimpan di perangkat ini beda dari link ini.',
+    newer: 'Link ini versi yang lebih baru.',
+    openSaved: 'Buka yang kesimpan',
+    update: 'Perbarui pakai link ini',
+    toastUpdated: 'Daftar diperbarui pakai link ini',
+    saveCopy: 'Simpan sebagai daftar baru',
     open: 'Buka',
     empty: 'Daftar ini belum ada tempatnya. Coba tanya yang ngirim link-nya ya.',
     emptyOwn: 'Daftar ini belum ada tempatnya. Tambahin dulu, baru bagikan ya.',
@@ -77,6 +85,12 @@ const S = {
     save: 'Save to this device',
     toastSaved: 'List saved on this device',
     onPhone: 'This list is saved on this device.',
+    differs: "The copy on this device doesn't match this link.",
+    newer: 'This link is the newer version.',
+    openSaved: 'Open the saved one',
+    update: 'Update from this link',
+    toastUpdated: 'List updated from this link',
+    saveCopy: 'Save as a new list',
     open: 'Open',
     empty: "This list doesn't have any places yet. Try asking whoever sent the link.",
     emptyOwn: "This list doesn't have any places yet. Add some before you share it.",
@@ -89,7 +103,7 @@ const SWIPE_PX = 40;
 const MAX_DOTS = 7;
 const ARROW_STEPS = { ArrowLeft: -1, ArrowRight: 1 };
 const COMPACT_SHRINK = 88; // px the cover loses when the head is stuck (176 → 88, see .placecard__head)
-const HINT_KEY = 'jk.hint.scroll';
+const HINT_KEY = storageKey('hint.scroll');
 const HINT_DELAY_MS = 700;
 const HINT_SHOW_MS = 6000;
 const WHEEL_STEP_PX = 30; // how far a wheel must turn beside the cards before it moves one place
@@ -119,8 +133,14 @@ function rememberIndex({ payload, from }, index) {
 
 /** List name (the screen h1, styled for the bar) and "dari Rani · 5 tempat". */
 function listHeading(list) {
-  const count = placesLabel(list.places.length);
-  const caption = list.from ? `${tc('fromName', { name: list.from })} · ${count}` : count;
+  // "dari Rani · 5 tempat · diubah hari ini" (when the link says when the list last changed).
+  const caption = [
+    list.from && tc('fromName', { name: list.from }),
+    placesLabel(list.places.length),
+    list.linkTime && relativeTime(list.linkTime, getLang()),
+  ]
+    .filter(Boolean)
+    .join(' · ');
   return h(
     'div',
     { class: 'topbar__heading' },
@@ -583,7 +603,12 @@ function watchBreakpoint(ctx) {
   breakpointWatch = { query, onChange };
 }
 
-/** "Simpan ke perangkat ini" for a list this device doesn't have yet; afterwards (or if it has it) a link to open it. */
+/**
+ * "Simpan ke perangkat ini" for a list this device doesn't have yet; afterwards (or if it has the
+ * same) a link to open it. When the saved copy differs, both stay: open the saved one, and either
+ * update it from this link (when the link is newer) or save this one as a new list. Nothing is
+ * ever overwritten without a tap.
+ */
 function saveArea(list) {
   const area = h('div', { class: 'center-row mt-8' });
 
@@ -607,9 +632,42 @@ function saveArea(list) {
     showOpen(saved.id).focus();
   };
 
-  // A list already on this device may be newer than the link (the coordinator's own), so never overwrite it here.
-  // The example is never "already on this device": each saved copy has its own id (an old 'sample01' copy is ignored).
-  if (list.id !== SAMPLE_ID && getList(list.id)) showOpen(list.id);
+  const showDiffers = (saved) => {
+    const newer = list.linkTime !== null && list.linkTime > saved.updatedAt;
+    const replace = () => {
+      importList(list);
+      if (!savedToDevice()) return;
+      toast(t(S, 'toastUpdated'));
+      showOpen(saved.id).focus();
+    };
+    const copy = () => {
+      const { list: added } = importList(list, { asCopy: true });
+      if (!savedToDevice()) return;
+      toast(t(S, 'toastSaved'));
+      showOpen(added.id).focus();
+    };
+    const button = (key, name, onClick) =>
+      h('button', { class: 'btn btn--ghost', attrs: { type: 'button' }, on: { click: onClick } }, icon(name, { size: 16 }), h('span', {}, t(S, key)));
+    area.replaceChildren(
+      h(
+        'div',
+        { class: 'save-differs' },
+        h('p', { class: 'hint hint--center' }, icon('info-circle', { size: 14 }), h('span', {}, t(S, 'differs'), newer && ` ${t(S, 'newer')}`)),
+        h(
+          'div',
+          { class: 'center-row' },
+          h('a', { class: 'btn btn--ghost', attrs: { href: routes.list(saved.id) } }, t(S, 'openSaved')),
+          newer ? button('update', 'refresh', replace) : button('saveCopy', 'copy', copy),
+        ),
+      ),
+    );
+  };
+
+  // A list already on this device may be newer than the link (the coordinator's own), so it is never
+  // overwritten without asking. The example is always 'new' (each saved copy gets its own id).
+  const { status, saved } = compareWithSaved(list);
+  if (status === 'same') showOpen(saved.id);
+  else if (status === 'different') showDiffers(saved);
   else {
     area.append(
       h(
@@ -620,7 +678,9 @@ function saveArea(list) {
       ),
     );
   }
-  return area;
+  // Inside another app's browser a saved list may not last: say so above the save area.
+  const warn = status === 'new' && inAppBrowserNote({ class: 'mt-8' });
+  return warn ? [warn, area] : area;
 }
 
 function emptyView(ownList) {

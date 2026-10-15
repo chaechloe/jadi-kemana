@@ -10,11 +10,13 @@ const files = [
   ['js', '.js'],
   ['js/views', '.js'],
   ['tools', '.mjs'],
-].flatMap(([dir, ext]) =>
-  readdirSync(join(root, dir))
-    .filter((name) => name.endsWith(ext))
-    .map((name) => join(dir, name)),
-);
+]
+  .flatMap(([dir, ext]) =>
+    readdirSync(join(root, dir))
+      .filter((name) => name.endsWith(ext))
+      .map((name) => join(dir, name)),
+  )
+  .concat('sw.js');
 
 const failed = files.filter((file) => spawnSync(process.execPath, ['--check', join(root, file)], { stdio: 'inherit' }).status !== 0);
 if (failed.length) {

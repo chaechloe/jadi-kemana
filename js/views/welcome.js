@@ -1,7 +1,7 @@
 // Welcome (#/): the brand band, the sample ticket stack and the two CTAs. Returning coordinators
 // also get "Daftar kamu"; anyone can re-open a list from its link here.
 import { h, icon, uid } from '../ui.js';
-import { topBar, ticket, squiggleWord, primaryButton, note } from '../components.js';
+import { topBar, ticket, squiggleWord, primaryButton, note, inAppBrowserNote } from '../components.js';
 import { getLang, t, tc } from '../i18n.js';
 import { sampleList } from '../data.js';
 import { getLists, storageOk, dropUntouchedLists } from '../store.js';
@@ -72,8 +72,9 @@ function actions(ctx, exampleHref) {
 }
 
 /** Only when this browser can't save: lists made now won't survive a reload. */
+/** Only when this browser can't keep lists: it can't save at all, or it's another app's browser. */
 function storageNote() {
-  return storageOk() ? null : note('alert-triangle', tc('errStorage'), { class: 'mt-24' });
+  return storageOk() ? inAppBrowserNote({ class: 'mt-24' }) : note('alert-triangle', tc('errStorage'), { class: 'mt-24' });
 }
 
 function yourLists(ctx, lists) {

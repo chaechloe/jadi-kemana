@@ -448,6 +448,18 @@ export function emptyState({ icon: name = 'info-circle', text, action } = {}) {
   return h('div', { class: 'empty' }, icon(name, { size: 32 }), h('p', { class: 'empty__text' }, text), action);
 }
 
+// Apps that open links in their own browser, whose storage is separate and often short-lived
+// (Instagram, Facebook, LINE, TikTok, Snapchat, X), plus Android web views in general.
+const IN_APP_UA = /Instagram|FBAN|FBAV|FB_IAB|\bLine\/|TikTok|musical_ly|BytedanceWebview|Snapchat|Twitter|; wv\)/i;
+
+/** True inside another app's built-in browser, where saved lists may not last. */
+export const inAppBrowser = () => IN_APP_UA.test(globalThis.navigator?.userAgent ?? '');
+
+/** "Open this in your browser", shown only inside another app's browser; null elsewhere. */
+export function inAppBrowserNote({ class: extra } = {}) {
+  return inAppBrowser() ? note('external-link', tc('inAppBrowser'), { class: extra }) : null;
+}
+
 /** A brand-soft note (the danger one with `danger`) with a leading icon; `class` adds e.g. a margin. */
 export function note(name, text, { danger = false, size = 16, class: extra } = {}) {
   return h(

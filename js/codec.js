@@ -125,7 +125,8 @@ function unpackPlace(row) {
 /** List → payload string ('1' + mode + base64url data). */
 export async function encodeList(list) {
   const clean = sanitizeList(list, { keepIds: true });
-  const json = JSON.stringify([1, clean.id, clean.title, clean.from, clean.places.map(packPlace)]);
+  // The 6th field (when the list last changed) was added later; older links end at the places.
+  const json = JSON.stringify([1, clean.id, clean.title, clean.from, clean.places.map(packPlace), clean.updatedAt]);
   const bytes = new TextEncoder().encode(json);
   const plain = VERSION + 'j' + toBase64url(bytes);
   if (!canCompress()) return plain;
@@ -168,10 +169,19 @@ export async function decodeList(payload) {
   if (!Array.isArray(data)) throw new CodecError('corrupt');
   if (data[0] !== 1) throw new CodecError(typeof data[0] === 'number' ? 'version' : 'corrupt');
 
-  const [, id, title, from, rows] = data;
+  const [, id, title, from, rows, changedAt] = data;
   const places = Array.isArray(rows) ? rows.slice(0, LIMITS.places).map(unpackPlace) : [];
-  return sanitizeList({ id, title, from, places });
+  const stamped = linkTime(changedAt);
+  const list = sanitizeList({ id, title, from, places, createdAt: stamped ?? undefined, updatedAt: stamped ?? undefined });
+  // linkTime: when the list last changed before this link was made; null for links without it.
+  return { ...list, linkTime: stamped };
 }
+
+// A list's "last changed" time from a link: a plausible past time (since 2026, at most a day
+// ahead for clock skew), else null.
+const EARLIEST = Date.UTC(2026, 0, 1);
+const linkTime = (value) =>
+  Number.isFinite(value) && value >= EARLIEST && value <= Date.now() + 24 * 60 * 60 * 1000 ? Math.round(value) : null;
 
 // ---- sanitizing ----
 

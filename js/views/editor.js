@@ -22,10 +22,11 @@ import { t, tc } from '../i18n.js';
 import { LIMITS } from '../data.js';
 import * as store from '../store.js';
 import * as routes from '../routes.js';
+import { storageKey } from '../config.js';
 import { oneLine } from '../autofill.js';
 import { openListsSheet } from './lists-sheet.js';
 
-const PREFILL_KEY = 'jk.prefill'; // the place form reads this once and clears it
+const PREFILL_KEY = storageKey('prefill'); // the place form reads this once and clears it
 const MIN_TO_SHARE = 2;
 
 const S = {
@@ -57,6 +58,9 @@ const S = {
     moveDown: 'Pindah ke bawah',
     moveBottom: 'Pindah ke paling bawah',
     moved: '{name} pindah ke urutan {n}',
+    duplicate: 'Duplikat daftar ini',
+    copySuffix: ' (salinan)',
+    duplicated: 'Daftar diduplikat. Ini salinannya.',
     deleteList: 'Hapus daftar ini',
     deleteTitle: 'Hapus daftar ini?',
     deleteBody: 'Yakin? Daftar ini bakal hilang dari perangkat ini.',
@@ -94,6 +98,9 @@ const S = {
     moveDown: 'Move down',
     moveBottom: 'Move to the bottom',
     moved: '{name} moved to position {n}',
+    duplicate: 'Duplicate this list',
+    copySuffix: ' (copy)',
+    duplicated: "List duplicated. You're editing the copy.",
     deleteList: 'Delete this list',
     deleteTitle: 'Delete this list?',
     deleteBody: 'Sure? This list will be gone from this device.',
@@ -469,6 +476,21 @@ function deleteButton(ctx, state) {
   return deleteRow({ label: t(S, 'deleteList'), onClick: ask, class: 'mt-32' });
 }
 
+/** "Duplikat daftar ini": a fresh copy to reuse (next week's hangout), opened right away. */
+function duplicateButton(ctx, state) {
+  const duplicate = () => {
+    const copy = store.duplicateList(state.list.id, { suffix: t(S, 'copySuffix') });
+    if (!copy) return;
+    ctx.nav(routes.list(copy.id));
+    toast(t(S, 'duplicated'), { icon: 'copy' });
+  };
+  return h(
+    'div',
+    { class: 'center-row mt-24' },
+    h('button', { class: 'btn btn--ghost', attrs: { type: 'button' }, on: { click: duplicate } }, icon('copy', { size: 16 }), h('span', {}, t(S, 'duplicate'))),
+  );
+}
+
 // ---- sticky bottom bar ----
 
 function shareBar(list) {
@@ -533,6 +555,7 @@ export async function render(ctx) {
       // Wide screens only (CSS): a heading for the side panel.
       h('div', { class: 'aside-intro' }, h('h2', { class: 'aside-intro__title' }, t(S, 'shareTitle')), h('p', { class: 'muted' }, t(S, 'shareText'))),
       shareBar(list),
+      hasPlaces && duplicateButton(ctx, state),
       deleteButton(ctx, state),
     ),
   );

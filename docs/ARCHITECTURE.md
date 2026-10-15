@@ -3,18 +3,21 @@
 Jadi Kemana? is a static web app: plain HTML, CSS and JavaScript ES modules. There is no framework, no build step and no runtime dependency. It runs on any static host; GitHub Pages is the reference host.
 
 ```
-index.html              app shell (meta, CSP, fonts, #app, #toast)
+index.html              app shell (meta, link-preview og: tags, CSP, fonts, #app with a loading state, #toast)
+manifest.webmanifest    Home Screen install (name, icons, standalone)
+sw.js                   service worker: offline copies and fresh updates (see "Offline")
 css/tokens.css          design tokens (:root custom properties) and @font-face
 css/app.css             every component class, then a few screen-specific rules (last on purpose)
 assets/fonts/*.woff2    self-hosted Fredoka + Plus Jakarta Sans (OFL, see LICENSES/)
-assets/icons/logo.svg   favicon / brand mark
+assets/icons/           logo.svg (favicon / brand mark), PNG app icons (favicon-32, apple-touch, 192, 512, maskable)
+assets/og-image.png     the 1200x630 link-preview image
 js/main.js              boot, render loop, per-route screen state
 js/routes.js            hash builders + parseRoute
 js/ui.js                DOM helpers: h(), icon(), toast(), sheets, copy/share
 js/components.js        shared visual building blocks (tile, cover, ticket, top bar, buttons…)
 js/icons.js             Tabler icon paths (MIT), static strings only
 js/i18n.js              language state, COMMON strings, formatting helpers
-js/config.js            settings for a fork (e.g. the OpenStreetMap address lookup on/off)
+js/config.js            settings for a copy: the OpenStreetMap address lookup on/off, storagePrefix (+ storageKey())
 js/data.js              perk vocabulary, colours, emoji, limits, ids, the example list
 js/store.js             lists in localStorage
 js/codec.js             list <-> link payload
@@ -75,14 +78,26 @@ Place = {
 - **Payload** = `'1'` (version) + mode + data, where mode `'z'` = base64url(deflate-raw(UTF-8 JSON)) and `'j'` = base64url(UTF-8 JSON), the fallback without `CompressionStream`.
 - **Positional JSON** keeps links short:
   ```
-  [1, listId, title, from, [ place, … ]]
+  [1, listId, title, from, [ place, … ], updatedAt /*added later: when the list last changed*/]
   place = [name, emoji, colorIndex, address, hours, ratingX10 /*0 = none*/, ratingCount,
            perksBitmask /*bit i = PERKS[i]*/, custom[], note, maps /*'~<id>' = maps.app.goo.gl/<id>*/,
            menu /*added later: links made before it end at maps*/]
   ```
 - **Links people already shared must keep working.** Never reorder or remove `data.PERKS` / `data.COLORS` (only append), add new place fields only at the end of `place` (as `menu` was), and keep `tests/golden.test.mjs` passing: it decodes two frozen real links.
-- **Decoding** validates types, truncates to `data.LIMITS`, drops unsafe URLs, caps places at `LIMITS.places` and gives places fresh ids.
+- **Decoding** validates types, truncates to `data.LIMITS`, drops unsafe URLs, caps places at `LIMITS.places` and gives places fresh ids. A decoded list also carries `linkTime`: when it last changed, from the 6th field (a plausible time, else `null`, as for links made before it existed). The friend view shows it ("diubah hari ini"), and it decides whether a saved copy can be updated from the link.
 - The site address is inside every shared link: renaming the repo or the GitHub user breaks old links.
+
+## Offline
+
+`sw.js` is a network-first service worker, registered by `main.js` on https (on localhost only with `?sw=1`, so it can't catch other projects on the same port).
+- Every same-origin GET is fetched from the server first (files revalidated with `cache: 'no-cache'`), so a release is used straight away instead of after GitHub Pages' 10-minute cache, and old and new modules never mix.
+- Each response is kept. Without a connection the kept copy answers; a page load falls back to the kept app.
+- `SHELL` (the modules, styles, fonts and icons) is kept on install, so screens never opened before work offline too. `tests/sw.test.mjs` fails when a module is missing from it.
+- Other origins (Nominatim) are never touched. Changing `CACHE` drops the old copies on the next activation.
+
+## Storage keys
+
+Everything the app keeps in the browser is named through `config.storageKey(name)`, i.e. `<storagePrefix>.<name>`: `v1.lists` (store), `lang` (i18n), `v1.geo` (address cache), `prefill` and `hint.scroll` (sessionStorage). All copies on one GitHub account share an origin (`<user>.github.io`), so a second copy sets its own `storagePrefix`.
 
 ## Routing and screens
 
@@ -120,11 +135,11 @@ export async function render(ctx) { /* returns an HTMLElement */ }
 
 **ui.js:** `h(tag, props, ...children)` · `icon(name, { size, class })` · `uid(prefix)` · `toast(message, { icon })` · `openSheet(content, { label }) → close` · `copyText(text)` · `shareText(text)` · `copyWithToast(text, { done, failed })` · `shareOrCopy(text, { done, failed })`
 
-**components.js:** `langToggle` · `topBar` · `pageHeader` · `deadEnd` · `placeTile` · `placeRowMeta` ("Lengkong · ★ 4.9 · 5 fasilitas") · `cover` · `ticket` · `addressLine` · `placeMetaLines` · `facilitiesList` · `noteBlock` · `menuButton` · `sendButton` · `primaryButton` · `bottomBar` · `ghostRow` · `emptyState` · `note` · `deleteRow` · `confirmDelete` · `chooseSheet` (pick one of a few actions; Cancel starts focused) · `iconButton` · `listRow` · `squiggleWord` · `hidden` (visually hidden text) · `decorative` (attrs for purely visual nodes) · `placesLabel(n)`
+**components.js:** `langToggle` · `topBar` · `pageHeader` · `deadEnd` · `placeTile` · `placeRowMeta` ("Lengkong · ★ 4.9 · 5 fasilitas") · `cover` · `ticket` · `addressLine` · `placeMetaLines` · `facilitiesList` · `noteBlock` · `menuButton` · `sendButton` · `primaryButton` · `bottomBar` · `ghostRow` · `emptyState` · `note` · `deleteRow` · `confirmDelete` · `chooseSheet` (pick one of a few actions; Cancel starts focused) · `iconButton` · `listRow` · `squiggleWord` · `hidden` (visually hidden text) · `decorative` (attrs for purely visual nodes) · `inAppBrowser()` / `inAppBrowserNote()` (inside Instagram, LINE… a saved list may not last) · `placesLabel(n)`
 
 **i18n.js:** `getLang()` (saved choice > browser language > `'id'`) · `setLang(lang)` (dispatches `jk:lang`) · `t(dict, key, vars)` · `tc(key, vars)` · `COMMON` · `formatHours` · `formatRating` · `relativeTime`
 
-**store.js:** `getLists` · `getList` · `createList` · `saveList` · `deleteList` · `upsertPlace` (a no-op when nothing changed) · `removePlace` · `movePlace` · `markShared` · `compareWithSaved(list) → { status: 'new' | 'same' | 'different', saved }` · `importList(list, { asCopy })` · `storageOk` · `savedToDevice`
+**store.js:** `getLists` · `getList` · `createList` · `saveList` · `deleteList` · `upsertPlace` (a no-op when nothing changed) · `removePlace` · `movePlace` · `markShared` · `compareWithSaved(list) → { status: 'new' | 'same' | 'different', saved }` · `importList(list, { asCopy })` · `duplicateList(id, { suffix })` · `dropUntouchedLists()` · `storageOk` · `savedToDevice`
 
 **codec.js:** `encodeList(list) → payload` · `decodeList(payload) → List` (throws `CodecError`: `version` | `corrupt` | `unsupported`) · `sanitizeList` · `listUrl(payload)`
 
