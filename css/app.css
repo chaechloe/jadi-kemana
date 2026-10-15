@@ -79,19 +79,6 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
-/* The page: a warm haze, peach at the top melting into the cream ground, with a fine paper grain.
-   It's fixed to the screen behind everything, so every screen starts warm at the top. */
-body::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .24 0 0 0 0 .17 0 0 0 0 .12 0 0 0 .6 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23g)' opacity='.32'/%3E%3C/svg%3E") 0 0 / 160px 160px,
-    linear-gradient(180deg, var(--haze) 0%, var(--haze-mid) 40%, var(--ground) 78%);
-}
-
 body.has-sheet {
   overflow: hidden;
 }
@@ -564,7 +551,7 @@ h3 {
 }
 
 .iconbtn--glass::before {
-  background: rgba(255, 252, 246, 0.92);
+  background: rgba(255, 255, 255, 0.92);
 }
 
 /* White glyph on a place colour or the band. */
@@ -705,11 +692,11 @@ h3 {
 
 .seg__btn[aria-pressed="true"] .seg__pill {
   background: var(--surface);
-  box-shadow: 0 1px 2px rgba(62, 44, 32, 0.14);
+  box-shadow: 0 1px 2px rgba(var(--shadow-rgb), 0.14);
   color: var(--ink);
 }
 
-/* Dark track on the band: white text on it is ~6.6:1 (a white tint gave only 3.38:1 on #C0530B). */
+/* Dark track on the band: white text on it stays well above 4.5:1 (a white tint fell under it). */
 .seg--band {
   background: rgba(0, 0, 0, 0.20);
 }
@@ -1224,7 +1211,7 @@ button.row:focus-visible {
 .input[aria-invalid="true"]:focus,
 .select[aria-invalid="true"]:focus,
 .textarea[aria-invalid="true"]:focus {
-  box-shadow: inset 0 0 0 1.5px var(--danger), 0 0 0 3px rgba(168, 74, 10, 0.35);
+  box-shadow: inset 0 0 0 1.5px var(--danger), 0 0 0 3px rgba(var(--brand-rgb), 0.35);
 }
 
 .input--num {
@@ -1583,7 +1570,7 @@ button.row:focus-visible {
 }
 
 .placecard__head.is-stuck {
-  box-shadow: 0 1px 0 var(--line), 0 8px 16px -12px rgba(62, 44, 32, 0.35);
+  box-shadow: 0 1px 0 var(--line), 0 8px 16px -12px rgba(var(--shadow-rgb), 0.35);
 }
 
 .placecard__head .cover {
@@ -1807,7 +1794,7 @@ button.row:focus-visible {
   height: 28px;
   padding: 0 var(--sp-12) 0 var(--sp-8);
   border-radius: var(--r-pill);
-  background: rgba(255, 252, 246, 0.94);
+  background: rgba(255, 255, 255, 0.94);
   font-variant-numeric: tabular-nums;
 }
 
@@ -2098,10 +2085,10 @@ button.row:focus-visible {
   top: 0;
   left: 0;
   width: 100%;
-  filter: drop-shadow(0 10px 12px rgba(62, 44, 32, 0.2));
+  filter: drop-shadow(0 10px 12px rgba(var(--shadow-rgb), 0.2));
 }
 
-/* Tickets on the haze or a see-through bar get real notches (round bites in a mask), so whatever
+/* Tickets on the page or a see-through bar get real notches (round bites in a mask), so whatever
    is behind shows through; a painted circle only matches a flat background. Two half-width mask
    layers, one bite each. */
 .ticket-stack .ticket,
@@ -2126,7 +2113,7 @@ button.row:focus-visible {
 }
 
 .place-form__showcase-ticket {
-  filter: drop-shadow(0 10px 12px rgba(62, 44, 32, 0.2));
+  filter: drop-shadow(0 10px 12px rgba(var(--shadow-rgb), 0.2));
 }
 
 .ticket-stack > :nth-child(1) {
@@ -2472,7 +2459,7 @@ button.row:focus-visible {
   padding: var(--sp-32) var(--sp-16);
   border-radius: 32px;
   background-color: var(--brand-soft);
-  background-image: radial-gradient(rgba(192, 83, 11, 0.14) 1.5px, transparent 1.6px);
+  background-image: radial-gradient(rgba(var(--brand-rgb), 0.14) 1.5px, transparent 1.6px);
   background-size: var(--dots-size);
 }
 
@@ -2705,7 +2692,7 @@ button.row:focus-visible {
   padding: var(--sp-8) var(--sp-12);
   border-radius: 18px 18px 18px 6px;
   background: #FFFFFF;
-  box-shadow: 0 1px 1px rgba(62, 44, 32, 0.08);
+  box-shadow: 0 1px 1px rgba(var(--shadow-rgb), 0.08);
   color: var(--ink);
   font-family: var(--font-chat);
   font-size: 15px;
@@ -2753,7 +2740,7 @@ button.row:focus-visible {
   gap: var(--sp-12);
   padding: var(--sp-8);
   border-radius: var(--r-16);
-  background: rgba(62, 44, 32, 0.05);
+  background: rgba(var(--shadow-rgb), 0.05);
   color: var(--ink);
   font-family: var(--font-ui);
   text-decoration: none;
@@ -2859,7 +2846,7 @@ button.row:focus-visible {
    Welcome: brand band with the hand-drawn squiggle
    ========================================================================== */
 
-/* Full-bleed within the column. Solid brand behind the text (white on it is 4.68:1), then, in the
+/* Full-bleed within the column. Solid brand behind the text (white on it is 4.74:1), then, in the
    bottom padding where the ticket stack overlaps, it melts into the page ground: no hard edge.
    The dots fade out with it. */
 .band {
@@ -2871,9 +2858,9 @@ button.row:focus-visible {
   background: linear-gradient(
     180deg,
     var(--brand) calc(100% - var(--band-fade)),
-    rgba(210, 116, 52, 0.92) calc(100% - var(--band-fade) * 0.62),
-    rgba(231, 180, 138, 0.5) calc(100% - var(--band-fade) * 0.28),
-    rgba(246, 211, 179, 0) 100%
+    rgba(208, 110, 76, 0.9) calc(100% - var(--band-fade) * 0.62),
+    rgba(245, 184, 160, 0.5) calc(100% - var(--band-fade) * 0.28),
+    rgba(255, 250, 245, 0) 100%
   );
   color: #FFFFFF;
 }
@@ -3163,7 +3150,7 @@ button.row:focus-visible {
 @property --glow {
   syntax: '<color>';
   inherits: false;
-  initial-value: #C0530B;
+  initial-value: #BE522D;
 }
 
 /* ==========================================================================
@@ -3227,7 +3214,7 @@ button.row:focus-visible {
     z-index: -1;
     border-radius: var(--r-pill);
     background: var(--frost-pill);
-    box-shadow: inset 0 0 0 1px rgba(62, 44, 32, 0.07), 0 8px 20px -14px rgba(62, 44, 32, 0.35);
+    box-shadow: inset 0 0 0 1px rgba(var(--shadow-rgb), 0.07), 0 8px 20px -14px rgba(var(--shadow-rgb), 0.35);
     -webkit-backdrop-filter: blur(16px) saturate(1.3);
     backdrop-filter: blur(16px) saturate(1.3);
   }
@@ -3377,10 +3364,10 @@ button.row:focus-visible {
     gap: var(--sp-8);
   }
 
-  /* Little ticket stubs: a real notch on each side (the haze shows through), the current one
+  /* Little ticket stubs: a real notch on each side (the page shows through), the current one
      outlined. The list casts the shadows, since a stub's own shadow would be cut off by its mask. */
   .place-picks .list-surface {
-    filter: drop-shadow(0 1px 1px rgba(62, 44, 32, 0.08)) drop-shadow(0 6px 10px rgba(62, 44, 32, 0.1));
+    filter: drop-shadow(0 1px 1px rgba(var(--shadow-rgb), 0.08)) drop-shadow(0 6px 10px rgba(var(--shadow-rgb), 0.1));
   }
 
   .place-picks .list-surface > li {
@@ -3706,7 +3693,7 @@ button.row:focus-visible {
 
   .hero .seg--band .seg__btn[aria-pressed="true"] .seg__pill {
     background: var(--surface);
-    box-shadow: 0 1px 2px rgba(62, 44, 32, 0.14);
+    box-shadow: 0 1px 2px rgba(var(--shadow-rgb), 0.14);
     color: var(--ink);
   }
 
@@ -3774,7 +3761,7 @@ button.row:focus-visible {
     inset: -40px;
     border-radius: 46% 54% 50% 50% / 52% 46% 54% 48%;
     background-color: var(--brand-soft);
-    background-image: radial-gradient(rgba(192, 83, 11, 0.12) 1.5px, transparent 1.6px);
+    background-image: radial-gradient(rgba(var(--brand-rgb), 0.12) 1.5px, transparent 1.6px);
     background-size: var(--dots-size);
   }
 
