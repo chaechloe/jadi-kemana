@@ -27,6 +27,7 @@ Still stuck? **Surprise me** (*Terserah!* in Bahasa Indonesia) lets the app pick
 
 - Several lists on one phone, for example *WFC Bandung* (work-from-cafe spots), *Office iftar* and *Saturday hangout*
 - Place cards with the address, opening hours, rating, perks (WiFi, power outlets, AC, prayer room, parking…), a note from the coordinator, and an emoji and colour per place
+- An optional menu link per place (a PDF on Google Drive, Instagram or a web page): friends tap "See the menu" and it opens right away, no download. A PDF on your phone needs to go on Google Drive first, since the app has no server to hold files
 - Paste from Google Maps to fill in the details: a place's copied info gives the name, rating, reviews and address; a full link gives the name and an approximate address
 - The place card's header stays pinned while you scroll through its perks and note, with a one-time "scroll for more" hint
 - Share a whole list (up to 20 places) as one link. Short lists fit everywhere, even Instagram DMs; longer ones still fit WhatsApp. The share screen tells you which apps your link fits.

@@ -143,6 +143,50 @@ export function canonicalMapsUrl(url) {
   return isSafeMapsUrl(href) ? href : '';
 }
 
+// ---- other web links (a place's menu) ----
+
+/**
+ * http or https to a real host (with a dot), no user:password@ part (it can disguise the real
+ * host), no whitespace, control or bidi characters.
+ */
+export function isSafeWebUrl(url) {
+  if (typeof url !== 'string' || !url || url.length > MAX_URL || UNSAFE_CHARS_RE.test(url)) return false;
+  let u;
+  try {
+    u = new URL(url);
+  } catch {
+    return false;
+  }
+  if ((u.protocol !== 'https:' && u.protocol !== 'http:') || u.username || u.password) return false;
+  return u.hostname.includes('.') && !u.hostname.endsWith('.');
+}
+
+/** A safe web link as the URL parser understood it (its href), or ''. */
+export function canonicalWebUrl(url) {
+  if (typeof url !== 'string' || !isSafeWebUrl(url.trim())) return '';
+  const href = new URL(url.trim()).href;
+  // Percent-encoding can make the href longer than the input, so check it again.
+  return isSafeWebUrl(href) ? href : '';
+}
+
+/**
+ * What someone typed as a menu link → { ok, value }. Empty is fine (no menu). Without a scheme
+ * ("drive.google.com/…") it gets https:// in front; anything else unsafe is not ok.
+ */
+export function parseWebLink(text) {
+  const raw = String(text ?? '').trim();
+  if (!raw) return { ok: true, value: '' };
+  const value = canonicalWebUrl(/^[a-z][a-z\d+.-]*:/i.test(raw) ? raw : `https://${raw}`);
+  return { ok: Boolean(value), value };
+}
+
+/** For a safe link: where it goes (the host without "www.", as punycode) and whether it's a PDF. */
+export function linkInfo(url) {
+  if (!isSafeWebUrl(url)) return null;
+  const u = new URL(url);
+  return { href: u.href, host: u.hostname.replace(/^www\./, ''), pdf: /\.pdf$/i.test(u.pathname) };
+}
+
 // Apostrophes are legal in a path ("McDonald's"), so a URL runs until whitespace, '<', '>' or '"'.
 const URL_RE = /https?:\/\/[^\s<>"]+/gi;
 // The same links pasted without "https://".

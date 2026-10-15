@@ -54,6 +54,7 @@ Place = {
   custom,        // ≤ 5 free-text perks, each ≤ 30
   note,          // ≤ 200, may be ''
   maps,          // '' or a canonical URL that passes isSafeMapsUrl()
+  menu,          // '' or a canonical http(s) URL that passes isSafeWebUrl() (a PDF on Drive, Instagram, a web page)
 }
 ```
 
@@ -67,9 +68,10 @@ Place = {
   ```
   [1, listId, title, from, [ place, … ]]
   place = [name, emoji, colorIndex, address, hours, ratingX10 /*0 = none*/, ratingCount,
-           perksBitmask /*bit i = PERKS[i]*/, custom[], note, maps /*'~<id>' = maps.app.goo.gl/<id>*/]
+           perksBitmask /*bit i = PERKS[i]*/, custom[], note, maps /*'~<id>' = maps.app.goo.gl/<id>*/,
+           menu /*added later: links made before it end at maps*/]
   ```
-- **Links people already shared must keep working.** Never reorder or remove `data.PERKS` / `data.COLORS` (only append), and keep `tests/golden.test.mjs` passing: it decodes two frozen real links.
+- **Links people already shared must keep working.** Never reorder or remove `data.PERKS` / `data.COLORS` (only append), add new place fields only at the end of `place` (as `menu` was), and keep `tests/golden.test.mjs` passing: it decodes two frozen real links.
 - **Decoding** validates types, truncates to `data.LIMITS`, drops unsafe URLs, caps places at `LIMITS.places` and gives places fresh ids.
 - The site address is inside every shared link: renaming the repo or the GitHub user breaks old links.
 
@@ -117,7 +119,7 @@ export async function render(ctx) { /* returns an HTMLElement */ }
 
 **codec.js:** `encodeList(list) → payload` · `decodeList(payload) → List` (throws `CodecError`: `version` | `corrupt` | `unsupported`) · `sanitizeList` · `listUrl(payload)`
 
-**links.js:** `waLink(text)` (always `api.whatsapp.com/send?text=`, never `wa.me`, whose redirect breaks emoji) · `placeMessage` · `randomMessage` · `compareMessage` · `listMessage` · `isSafeMapsUrl` · `isShortMapsUrl` · `canonicalMapsUrl` (drops tracking parameters) · `parseMapsInput(text)`
+**links.js:** `waLink(text)` (always `api.whatsapp.com/send?text=`, never `wa.me`, whose redirect breaks emoji) · `placeMessage` · `randomMessage` · `compareMessage` · `listMessage` · `isSafeMapsUrl` · `isShortMapsUrl` · `canonicalMapsUrl` (drops tracking parameters) · `parseMapsInput(text)` · `isSafeWebUrl` · `canonicalWebUrl` · `parseWebLink` (a typed menu link; adds https:// to a bare one) · `linkInfo` (host and PDF-or-not, for the "Lihat menu" button)
 
 `parseMapsInput` understands everything people paste from Google Maps:
 - a full link (`google.<tld>/maps/place/<name>/…!3d<lat>!4d<lng>`, `?q=`, `/search/`): name and pin;

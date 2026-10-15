@@ -26,6 +26,7 @@ export const COMMON = {
     yourLists: 'Daftar kamu',
     newList: 'Daftar baru',
     missingHours: 'Cek jam buka di Maps',
+    menu: 'Lihat menu',
     previewFriend: 'Lihat sebagai teman',
     open24: 'Buka 24 jam',
 
@@ -126,6 +127,7 @@ export const COMMON = {
     yourLists: 'Your lists',
     newList: 'New list',
     missingHours: 'Check hours on Maps',
+    menu: 'See the menu',
     previewFriend: 'Preview as a friend',
     open24: 'Open 24 hours',
 

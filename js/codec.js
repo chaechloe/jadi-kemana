@@ -1,6 +1,6 @@
 // List <-> URL fragment payload (codec v1). See docs/ARCHITECTURE.md, "Link payload".
 import { PERKS, COLORS, EMOJIS, LIMITS, newId } from './data.js';
-import { canonicalMapsUrl } from './links.js';
+import { canonicalMapsUrl, canonicalWebUrl } from './links.js';
 
 const VERSION = '1';
 const MAX_PAYLOAD = 360 * 1024; // characters, enough for MAX_JSON in mode 'j'
@@ -102,15 +102,17 @@ function packPlace(p) {
   return [
     p.name || '', p.emoji || '', color, p.address || '', p.hours || '', rating,
     String(p.ratingCount || ''), perksToMask(p.perks), p.custom || [], p.note || '', compactMaps(p.maps || ''),
+    // Appended later (menu link): older links simply end before it.
+    p.menu || '',
   ];
 }
 
 // Positional array → loose object; sanitizeList does the real validation.
 function unpackPlace(row) {
   if (!Array.isArray(row)) return null;
-  const [name, emoji, color, address, hours, rating, ratingCount, mask, custom, note, maps] = row;
+  const [name, emoji, color, address, hours, rating, ratingCount, mask, custom, note, maps, menu] = row;
   return {
-    name, emoji, address, hours, ratingCount, custom, note,
+    name, emoji, address, hours, ratingCount, custom, note, menu,
     color: COLORS[color]?.key,
     rating: Number.isInteger(rating) && rating > 0 ? rating / 10 : null,
     perks: maskToPerks(mask),
@@ -262,6 +264,7 @@ function cleanPlace(raw, id) {
     custom: cleanCustom(raw.custom),
     note: cleanText(raw.note, LIMITS.note, { multiline: true }),
     maps: cleanMaps(raw.maps),
+    menu: canonicalWebUrl(raw.menu),
   };
 }
 

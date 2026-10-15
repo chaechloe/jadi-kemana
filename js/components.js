@@ -3,7 +3,7 @@
 import { h, icon, openSheet } from './ui.js';
 import { getLang, setLang, t, tc, formatHours, formatRating } from './i18n.js';
 import { PERKS, EMOJIS, colorHex } from './data.js';
-import { isSafeMapsUrl } from './links.js';
+import { isSafeMapsUrl, linkInfo } from './links.js';
 
 const S = {
   id: {
@@ -350,6 +350,26 @@ export function sendButton({ href, label, size = 'lg' } = {}) {
   const content = [icon('message-circle', { size: 22 }), h('span', {}, label)];
   if (!href) return h('button', { class: classes, attrs: { type: 'button', disabled: true } }, content);
   return h('a', { class: classes, attrs: { href, target: '_blank', rel: 'noopener' } }, content);
+}
+
+/**
+ * "Lihat menu" for a place's menu link (a PDF on Google Drive, Instagram, a web page). It says where
+ * it leads ("drive.google.com", "PDF · example.com") so nobody taps into the unknown. Null without
+ * a safe link.
+ */
+export function menuButton(url, { block = true } = {}) {
+  const info = url ? linkInfo(url) : null;
+  if (!info) return null;
+  return h(
+    'a',
+    {
+      class: ['btn', 'btn--secondary', 'menu-link', block && 'btn--block'],
+      attrs: { href: info.href, target: '_blank', rel: 'noopener noreferrer' },
+    },
+    icon('book', { size: 18 }),
+    h('span', {}, tc('menu')),
+    h('span', { class: 'menu-link__host' }, info.pdf ? `PDF · ${info.host}` : info.host),
+  );
 }
 
 /** The 56px primary button: an <a> with `href`, else a <button>; `attrs` may add e.g. disabled. */
