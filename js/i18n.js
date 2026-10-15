@@ -69,6 +69,7 @@ export const COMMON = {
     errGenericTitle: 'Waduh, ada yang error',
     errGenericBody: 'Coba lagi sebentar ya.',
     errStorage: 'Browser ini nggak bisa nyimpen daftar. Link yang udah dibagikan tetep bisa dibuka.',
+    errNotSaved: 'Perubahan terakhir nggak kesimpan di perangkat ini (penyimpanannya penuh atau diblokir). Bagikan link-nya biar nggak hilang.',
     errNotFound: 'Daftar ini nggak ketemu di HP ini.',
     goHome: 'Ke halaman awal',
 
@@ -166,6 +167,7 @@ export const COMMON = {
     errGenericTitle: 'Something went wrong',
     errGenericBody: 'Give it another try in a moment.',
     errStorage: "This browser can't save lists. Shared links still open fine.",
+    errNotSaved: "Your last change couldn't be saved on this device (storage is full or blocked). Share the link so it isn't lost.",
     errNotFound: "We couldn't find this list on this phone.",
     goHome: 'Go to the home page',
 

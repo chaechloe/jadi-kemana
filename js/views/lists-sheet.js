@@ -1,9 +1,9 @@
 // "Daftar kamu": the list switcher sheet. Its rows and the "open a list from a link" form are
 // exported too, so the Welcome screen shows the same UI.
 import { h, icon, toast, openSheet } from '../ui.js';
-import { listRow, placeTile, placesLabel } from '../components.js';
+import { listRow, placeTile, placesLabel, chooseSheet } from '../components.js';
 import { getLang, t, tc, relativeTime } from '../i18n.js';
-import { getLists, createList, importList } from '../store.js';
+import { getLists, createList, importList, compareWithSaved, savedToDevice } from '../store.js';
 import { decodeList, CodecError } from '../codec.js';
 import * as routes from '../routes.js';
 
@@ -16,7 +16,12 @@ const S = {
     open: 'Buka',
     footer: 'Daftar cuma disimpan di HP ini. Link yang udah kamu bagikan bisa dibuka lagi kapan aja.',
     opened: 'Daftar dibuka',
-    updated: 'Daftar udah diperbarui',
+    updated: 'Daftar udah diganti pakai versi link',
+    savedCopy: 'Disimpan sebagai daftar baru',
+    conflictTitle: 'Daftar ini udah ada di perangkat ini',
+    conflictBody: 'Isi link ini beda sama yang kesimpan. Kalau diganti, perubahan yang belum kamu bagikan bakal hilang.',
+    keepBoth: 'Simpan sebagai daftar baru',
+    replace: 'Ganti pakai versi link',
     errEmpty: 'Tempel dulu link daftarnya ya.',
     errNotLink: 'Ini bukan link daftar. Coba salin lagi dari chat-nya ya.',
     errBroken: '{title}. Coba salin lagi link lengkapnya ya.',
@@ -30,7 +35,12 @@ const S = {
     open: 'Open',
     footer: "Lists are only saved on this phone. Any link you've shared can be opened again anytime.",
     opened: 'List opened',
-    updated: 'List updated',
+    updated: 'List replaced with the version from the link',
+    savedCopy: 'Saved as a new list',
+    conflictTitle: 'This list is already on this device',
+    conflictBody: "This link doesn't match the saved list. Replacing it loses any changes you haven't shared yet.",
+    keepBoth: 'Save as a new list',
+    replace: 'Replace with the link version',
     errEmpty: 'Paste the list link first.',
     errNotLink: "This isn't a list link. Try copying it from the chat again.",
     errBroken: '{title}. Try copying the whole link again.',
@@ -113,13 +123,13 @@ function decodeErrorMessage(err) {
   return t(S, 'errBroken', { title: tc('errBrokenTitle') });
 }
 
-/** Decodes pasted text and saves the list: { list, existed }, or { error } with a friendly message. */
-async function importFromText(text) {
+/** Decodes pasted text: { list }, or { error } with a friendly message. Nothing is saved yet. */
+async function listFromText(text) {
   if (!text.trim()) return { error: t(S, 'errEmpty') };
   const payload = findPayload(text);
   if (!payload) return { error: t(S, 'errNotLink') };
   try {
-    return importList(await decodeList(payload));
+    return { list: await decodeList(payload) };
   } catch (err) {
     return { error: decodeErrorMessage(err) };
   }
@@ -148,7 +158,8 @@ function toastAfterRender(message) {
 
 /**
  * "Buka daftar dari link": a disclosure row revealing a paste field and a "Buka" button.
- * A good link is saved (replacing a list with the same id) and opened in the editor.
+ * A good link is saved and opened in the editor. When the same list is already saved with other
+ * content (an older link from the chat, say), it asks first: save as a new list, or replace.
  * `close` closes the sheet it sits in, if any. On a page the draft (open or not, the pasted link)
  * lives in ctx.state, so a language switch keeps it; a sheet starts closed and empty every time.
  */
@@ -239,16 +250,32 @@ export function linkImportItem(ctx, { close } = {}) {
     submit.setAttribute('aria-disabled', 'true');
     clearError();
 
-    const result = await importFromText(input.value);
+    const result = await listFromText(input.value);
     busy = false;
     submit.removeAttribute('aria-disabled');
     if (result.error) {
       showError(result.error);
       return;
     }
-    close?.();
-    toastAfterRender(t(S, result.existed ? 'updated' : 'opened'));
-    ctx.nav(routes.list(result.list.id));
+
+    const open = (list, message) => {
+      close?.();
+      toastAfterRender(savedToDevice() ? message : tc('errNotSaved'));
+      ctx.nav(routes.list(list.id));
+    };
+    const { status } = compareWithSaved(result.list);
+    if (status === 'same') open(result.list, t(S, 'opened'));
+    else if (status === 'new') open(importList(result.list).list, t(S, 'opened'));
+    else {
+      chooseSheet({
+        title: t(S, 'conflictTitle'),
+        body: h('p', { class: 'muted' }, t(S, 'conflictBody')),
+        choices: [
+          { label: t(S, 'keepBoth'), icon: 'copy', onChoose: () => open(importList(result.list, { asCopy: true }).list, t(S, 'savedCopy')) },
+          { label: t(S, 'replace'), icon: 'refresh', variant: 'btn--danger', onChoose: () => open(importList(result.list).list, t(S, 'updated')) },
+        ],
+      });
+    }
   }
 
   if (draft.open) setOpen(true, { focus: false });

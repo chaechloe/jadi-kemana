@@ -39,6 +39,10 @@ function readAll() {
   }
 }
 
+// A write that didn't reach localStorage (full, blocked, private mode) is announced once as the
+// 'jk:storage-failed' event, so the app can say so instead of "saved".
+const FAILED_EVENT = 'jk:storage-failed';
+
 function writeAll(lists) {
   memory = lists.map(clone);
   try {
@@ -49,9 +53,13 @@ function writeAll(lists) {
     return true;
   } catch {
     writeFailed = true;
+    if (typeof Event === 'function') globalThis.dispatchEvent?.(new Event(FAILED_EVENT));
     return false;
   }
 }
+
+/** Did the last change reach this device's storage? false after a failed write, until one succeeds. */
+export const savedToDevice = () => !writeFailed;
 
 const clone = (value) => structuredClone(value);
 
@@ -64,6 +72,9 @@ function freshId(lists) {
 
 // Both sides come out of sanitizeList, so their keys are in the same order and JSON compares them.
 const samePlace = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+
+// What a link carries: decoded places get fresh ids, so ids and dates don't count.
+const content = (list) => JSON.stringify([list.title, list.from, list.places.map(({ id, ...place }) => place)]);
 
 // updatedAt always moves past sharedAt, even within the same millisecond.
 const touchTime = (list) => Math.max(Date.now(), (list.sharedAt ?? 0) + 1, (list.updatedAt ?? 0) + 1);
@@ -178,12 +189,27 @@ export function markShared(listId) {
 }
 
 /**
- * Saves a list opened from a link. A list with the same id is replaced.
- * The example list's fixed id is shared by every phone, so it always gets a fresh one instead.
+ * How a list opened from a link relates to the one saved here:
+ * 'new' (not saved here), 'same' (saved with the same content) or 'different'.
+ * The example's fixed id is shared by every device, so it is always 'new'.
  */
-export function importList(list) {
+export function compareWithSaved(list) {
+  const saved = list.id === SAMPLE_ID ? null : getList(list.id);
+  if (!saved) return { status: 'new', saved: null };
+  return { status: content(saved) === content(list) ? 'same' : 'different', saved };
+}
+
+/**
+ * Saves a list opened from a link. A saved list with the same id is replaced (keeping when it was
+ * created and last shared), unless `asCopy`, which saves it under a fresh id beside it. The example
+ * always gets a fresh id. Ask first (compareWithSaved) before replacing a list that differs.
+ */
+export function importList(list, { asCopy = false } = {}) {
   const lists = readAll();
-  if (list.id === SAMPLE_ID) list = { ...list, id: freshId(lists) };
-  const existed = lists.some((l) => l.id === list.id);
-  return { list: saveList(list, { touch: false }), existed };
+  const saved = lists.find((l) => l.id === list.id);
+  if (asCopy || list.id === SAMPLE_ID) {
+    return { list: saveList({ ...list, id: freshId(lists), sharedAt: null }, { touch: false }), existed: false };
+  }
+  if (!saved) return { list: saveList(list, { touch: false }), existed: false };
+  return { list: saveList({ ...list, createdAt: saved.createdAt, sharedAt: saved.sharedAt, updatedAt: saved.updatedAt }), existed: true };
 }

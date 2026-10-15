@@ -126,9 +126,15 @@ h3 {
   outline-color: #FFFFFF;
 }
 
-/* Headings receive focus after navigation (tabindex="-1"); they are not controls. */
-[tabindex="-1"]:focus {
+/* Headings receive focus after navigation (tabindex="-1"); they are not controls, so no ring.
+   A place card that takes focus from the arrow keys does show where focus is. */
+:is(h1, h2, .sheet)[tabindex="-1"]:focus {
   outline: none;
+}
+
+.placecard:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
 }
 
 /* ==========================================================================
@@ -1613,11 +1619,28 @@ button.row:focus-visible {
   transform: translateY(-50%);
 }
 
+/* The compact row only has room for the rating itself; the chip's label still reads the count. */
+.placecard__head.is-stuck .rating-chip__count {
+  display: none;
+}
+
 /* Short screens (small phones, landscape): drop the address line while stuck to save room. */
 @media (max-height: 700px) {
   .placecard__head.is-stuck .placecard__meta {
     padding-top: var(--sp-12);
     padding-bottom: var(--sp-12);
+  }
+
+  .placecard__head.is-stuck .meta-line:has(.meta-line__text--clamp) {
+    display: none;
+  }
+}
+
+/* Very short screens (a phone on its side, a zoomed-in laptop): nothing stays pinned over the
+   card, or there would be no room left to read it. */
+@media (max-height: 560px) {
+  .placecard__head {
+    position: static;
   }
 }
 
@@ -2351,6 +2374,23 @@ button.row:focus-visible {
 /* Neutral content (address, note, a facility check). */
 .cmp-row__cell--plain {
   color: var(--ink);
+}
+
+/* A link with where it goes under it (the menu row). */
+.cmp-row__cell--stack {
+  flex-direction: column;
+  gap: 2px;
+  color: var(--ink);
+}
+
+.cmp-row__host {
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--ink-2);
 }
 
 /* A note keeps its line breaks. */
@@ -3162,6 +3202,11 @@ button.row:focus-visible {
   backdrop-filter: blur(14px) saturate(1.2);
 }
 
+/* While typing (the on-screen keyboard takes half the screen) the preview scrolls away with the form. */
+.screen--form:has(:is(input, textarea):focus) .place-form__preview {
+  position: static;
+}
+
 /* On a short viewport (a phone in landscape) the preview scrolls away with the form. */
 @media (max-height: 520px) {
   .place-form__preview {
@@ -3412,8 +3457,10 @@ button.row:focus-visible {
     transition: background-color 0.15s ease;
   }
 
-  .place-picks .list-surface > li:hover {
-    background: var(--raised);
+  @media (hover: hover) {
+    .place-picks .list-surface > li:hover {
+      background: var(--fill);
+    }
   }
 
   .place-picks .list-surface > li:has(> .row__main[aria-current='true']) {
@@ -3505,7 +3552,7 @@ button.row:focus-visible {
 
   /* The page stays put: the cards scroll inside their own column, one card per stop, so one turn
      of the wheel (or one swipe on the touchpad) brings the next place. */
-  .screen--friend {
+  .screen--friend.layout {
     padding-bottom: 0;
   }
 
@@ -3885,6 +3932,10 @@ button.row:focus-visible {
   .cmp-row__cell {
     justify-content: flex-start;
     text-align: left;
+  }
+
+  .cmp-row__cell--stack {
+    align-items: flex-start;
   }
 
   .cmp-group__title {

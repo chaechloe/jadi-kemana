@@ -172,8 +172,9 @@ function textCell(text, { clamp = false } = {}) {
 function menuCell(place) {
   const info = linkInfo(place.menu);
   if (!info) return dashCell(t(S, 'noMenu'));
-  const attrs = { href: info.href, target: '_blank', rel: 'noopener noreferrer', title: info.host };
-  return cell(h('a', { class: 'link link--hit', attrs }, tc('menu')), 'plain');
+  const attrs = { href: info.href, target: '_blank', rel: 'noopener noreferrer' };
+  const where = info.pdf ? `PDF · ${info.host}` : info.host;
+  return cell([h('a', { class: 'link link--hit', attrs }, tc('menu')), h('span', { class: 'cmp-row__host' }, where)], 'stack');
 }
 
 function hasCell(has) {

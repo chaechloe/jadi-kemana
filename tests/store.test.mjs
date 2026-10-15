@@ -169,3 +169,58 @@ test('broken storage does not throw', () => {
     Object.defineProperty(globalThis, 'localStorage', { value: real, configurable: true, writable: true });
   }
 });
+
+test('compareWithSaved tells a new, an identical and a changed list apart', async () => {
+  const { decodeList, encodeList } = await import('../js/codec.js');
+  const mine = store.createList({ title: 'Nongkrong Sabtu', from: 'Rani' });
+  store.upsertPlace(mine.id, place('Kopi A'));
+  const shared = store.markShared(mine.id);
+  const link = await decodeList(await encodeList(shared)); // places come back with fresh ids
+
+  assert.equal(store.compareWithSaved({ ...link, id: 'zzzz9999' }).status, 'new');
+  assert.equal(store.compareWithSaved(link).status, 'same');
+  await tick();
+  store.upsertPlace(mine.id, place('Kopi B')); // edited after sharing
+  assert.equal(store.compareWithSaved(link).status, 'different');
+  assert.equal(store.compareWithSaved(sampleList('id')).status, 'new');
+});
+
+test('importList asCopy keeps the saved list; replacing keeps when it was created and shared', async () => {
+  const mine = store.createList({ title: 'Nongkrong Sabtu', from: 'Rani' });
+  store.upsertPlace(mine.id, place('Kopi A'));
+  const shared = store.markShared(mine.id);
+  const older = { ...shared, places: [] };
+
+  const copy = store.importList(older, { asCopy: true });
+  assert.notEqual(copy.list.id, mine.id);
+  assert.equal(copy.list.sharedAt, null);
+  assert.equal(store.getList(mine.id).places.length, 1, 'the saved list is untouched');
+
+  await tick();
+  const replaced = store.importList(older);
+  assert.equal(replaced.existed, true);
+  assert.equal(replaced.list.places.length, 0);
+  assert.equal(replaced.list.createdAt, shared.createdAt);
+  assert.equal(replaced.list.sharedAt, shared.sharedAt);
+  assert.ok(changedSinceShared(replaced.list), 'a replaced list counts as changed since shared');
+});
+
+test('a write that does not reach storage is reported, and the app is told', () => {
+  const real = globalThis.localStorage;
+  let told = 0;
+  const onFail = () => told++;
+  globalThis.addEventListener?.('jk:storage-failed', onFail);
+  try {
+    const full = new MemoryStorage();
+    full.setItem = () => { throw new Error('QuotaExceededError'); };
+    Object.defineProperty(globalThis, 'localStorage', { value: full, configurable: true, writable: true });
+    store.createList({ title: 'Penuh' });
+    assert.equal(store.savedToDevice(), false);
+    if (globalThis.addEventListener) assert.equal(told, 1);
+  } finally {
+    Object.defineProperty(globalThis, 'localStorage', { value: real, configurable: true, writable: true });
+    globalThis.removeEventListener?.('jk:storage-failed', onFail);
+  }
+  store.createList({ title: 'Lega lagi' });
+  assert.equal(store.savedToDevice(), true);
+});

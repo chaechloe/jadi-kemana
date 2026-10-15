@@ -1,9 +1,9 @@
 // Boot, hash router and render loop. See docs/ARCHITECTURE.md, "Router".
 import { h } from './ui.js';
-import { topBar, langToggle, pageHeader, emptyState } from './components.js';
+import { topBar, langToggle, pageHeader, emptyState, note } from './components.js';
 import { getLang, tc } from './i18n.js';
 import { decodeList, CodecError } from './codec.js';
-import { getList } from './store.js';
+import { getList, savedToDevice } from './store.js';
 import { parseRoute } from './routes.js';
 
 // Explicit loaders keep every import path static.
@@ -157,6 +157,7 @@ async function render({ navigated }) {
   if (ticket !== renderCount) return; // a newer navigation won
 
   app.replaceChildren(node);
+  if (!savedToDevice()) showNotSaved();
   setTitle(title);
   if (navigated) focusAfterNavigation();
   else if (refocus) app.querySelector(refocus)?.focus({ preventScroll: true });
@@ -169,9 +170,23 @@ function nav(hash) {
   else location.hash = target;
 }
 
+// ---- "not saved" banner ----
+
+// Shown under the top bar while changes can't reach this device's storage (full, blocked), so a
+// "saved" toast never hides that they'll be gone after a reload.
+function showNotSaved() {
+  if (app.querySelector('.not-saved')) return;
+  const banner = note('alert-triangle', tc('errNotSaved'), { danger: true, class: 'not-saved mt-8' });
+  banner.setAttribute('role', 'alert');
+  const bar = app.querySelector('.topbar');
+  if (bar) bar.after(banner);
+  else app.firstElementChild?.prepend(banner);
+}
+
 // ---- boot ----
 
 document.documentElement.lang = getLang();
 window.addEventListener('hashchange', () => render({ navigated: true }));
 window.addEventListener('jk:lang', () => render({ navigated: false }));
+window.addEventListener('jk:storage-failed', showNotSaved);
 render({ navigated: false });

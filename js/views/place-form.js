@@ -17,7 +17,7 @@ import {
 } from '../components.js';
 import { t, tc, getLang, formatHours, COMMON } from '../i18n.js';
 import { PERKS, COLORS, EMOJIS, LIMITS, colorHex } from '../data.js';
-import { getList, upsertPlace, removePlace } from '../store.js';
+import { getList, upsertPlace, removePlace, savedToDevice } from '../store.js';
 import { isSafeMapsUrl, parseWebLink } from '../links.js';
 import {
   autofillState,
@@ -853,7 +853,7 @@ function menuField(f) {
     label('pf-menu', t(S, 'menuLabel')),
     input,
     error,
-    h('p', { class: 'helper', id: 'pf-menu-help' }, icon('info-circle', { size: 14 }), h('span', {}, t(S, 'menuHelp'))),
+    h('p', { class: 'hint mt-8', id: 'pf-menu-help' }, icon('info-circle', { size: 14 }), h('span', {}, t(S, 'menuHelp'))),
   );
 }
 
@@ -969,7 +969,7 @@ function save(f) {
     return;
   }
   ctx.nav(routes.list(list.id));
-  toast(t(S, 'saved'));
+  if (savedToDevice()) toast(t(S, 'saved'));
 }
 
 function deleteButton(f) {

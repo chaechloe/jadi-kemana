@@ -52,6 +52,10 @@ const SCHEME_RE = /https?:\/\//gi;
 // or '-' before it and two letters (a TLD) right after it. 'Jl. Dago', 'No.27', '4.9' and '09.00'
 // do not match: they have a space or a digit after the dot.
 const HOST_DOT_RE = /([\p{L}\p{N}-])\.(?=\p{L}{2})/gu;
+// Four dotted number groups look like an IP address to a linkifier ('1.2.3.4/login').
+const IP_LIKE_RE = /\b\d{1,3}(?:\.\d{1,3}){3}\b/g;
+// Full-width and ideographic dots ('evil．com'): URL parsers read them as '.', so they never stay.
+const WIDE_DOT_RE = new RegExp(`[${[0x3002, 0xff0e, 0xff61].map((c) => String.fromCharCode(c)).join('')}]`, 'g');
 
 /**
  * User text (name, address, list title) for a chat message: one line, no URL scheme, and host-like
@@ -65,7 +69,11 @@ function inline(text) {
     prev = out;
     out = out.replace(SCHEME_RE, '');
   }
-  return out.replace(HOST_DOT_RE, '$1․').trim();
+  return out
+    .replace(WIDE_DOT_RE, '․')
+    .replace(IP_LIKE_RE, (ip) => ip.replaceAll('.', '․'))
+    .replace(HOST_DOT_RE, '$1․')
+    .trim();
 }
 
 // Only a safe Maps URL ever reaches a message, in its canonical form.
@@ -107,8 +115,11 @@ const SHORT_HOSTS = new Set(['maps.app.goo.gl', 'goo.gl', 'share.google']);
 // Tracking parameters Google adds to shared links. Dropping them keeps list links shorter.
 const TRACKING_PARAMS = ['g_st', 'g_ep', 'entry', 'shorturl', 'skid'];
 
+// Google's link redirector (/url?q=…) would send a "Maps" button anywhere, so no path may go through it.
+const REDIRECT_PATH_RE = /(?:^|\/)url(?:\/|$)/i;
+
 /**
- * https only, and only Google Maps links: google.<tld>/maps, maps.google.<tld>,
+ * https only, and only Google Maps links: google.<tld>/maps…, maps.google.<tld>/ or /maps…,
  * maps.app.goo.gl/…, goo.gl/maps/… and share.google/… (Google's newer share links).
  */
 export function isSafeMapsUrl(url) {
@@ -121,11 +132,12 @@ export function isSafeMapsUrl(url) {
   }
   if (u.protocol !== 'https:' || u.username || u.password || u.port) return false;
   const host = u.hostname.toLowerCase();
+  if (REDIRECT_PATH_RE.test(u.pathname)) return false;
   const inMaps = u.pathname === '/maps' || u.pathname.startsWith('/maps/');
   if (host === 'maps.app.goo.gl' || host === 'share.google') return u.pathname.length > 1;
   if (host === 'goo.gl') return inMaps;
   if (GOOGLE_HOST.test(host)) return inMaps;
-  return MAPS_GOOGLE_HOST.test(host);
+  return MAPS_GOOGLE_HOST.test(host) && (u.pathname === '/' || inMaps);
 }
 
 /** Is this (safe) Maps URL a short link that only redirects? */
@@ -145,8 +157,12 @@ export function canonicalMapsUrl(url) {
 
 // ---- other web links (a place's menu) ----
 
+// A host name that ends in a real top-level domain (letters, or punycode). IP addresses
+// (1.2.3.4, [::1]) and single words (localhost) fail it.
+const NAMED_HOST_RE = /^(?:[a-z0-9-]+\.)+(?:[a-z]{2,63}|xn--[a-z0-9-]+)$/;
+
 /**
- * http or https to a real host (with a dot), no user:password@ part (it can disguise the real
+ * http or https to a named host (no IP address), no user:password@ part (it can disguise the real
  * host), no whitespace, control or bidi characters.
  */
 export function isSafeWebUrl(url) {
@@ -158,7 +174,7 @@ export function isSafeWebUrl(url) {
     return false;
   }
   if ((u.protocol !== 'https:' && u.protocol !== 'http:') || u.username || u.password) return false;
-  return u.hostname.includes('.') && !u.hostname.endsWith('.');
+  return NAMED_HOST_RE.test(u.hostname);
 }
 
 /** A safe web link as the URL parser understood it (its href), or ''. */
@@ -180,11 +196,25 @@ export function parseWebLink(text) {
   return { ok: Boolean(value), value };
 }
 
-/** For a safe link: where it goes (the host without "www.", as punycode) and whether it's a PDF. */
+// Second-level labels under a country code that are not a site of their own (kopi.co.id, kopi.com.sg).
+const SECOND_LEVEL = new Set(['ac', 'biz', 'co', 'com', 'edu', 'go', 'gov', 'gr', 'mil', 'my', 'ne', 'net', 'or', 'org', 'sch', 'web']);
+
+/**
+ * The site a host belongs to, as people should read it: a short host in full (drive.google.com),
+ * otherwise only the site itself, so drive.google.com.evil.example reads "evil.example".
+ */
+function siteName(hostname) {
+  const labels = hostname.replace(/^www\./, '').split('.');
+  const keep = labels.length > 2 && labels.at(-1).length === 2 && SECOND_LEVEL.has(labels.at(-2)) ? 3 : 2;
+  const full = labels.join('.');
+  return labels.length - keep <= 1 && full.length <= 24 ? full : labels.slice(-keep).join('.');
+}
+
+/** For a safe link: the site it goes to (punycode for look-alike letters) and whether it's a PDF. */
 export function linkInfo(url) {
   if (!isSafeWebUrl(url)) return null;
   const u = new URL(url);
-  return { href: u.href, host: u.hostname.replace(/^www\./, ''), pdf: /\.pdf$/i.test(u.pathname) };
+  return { href: u.href, host: siteName(u.hostname), pdf: /\.pdf$/i.test(u.pathname) };
 }
 
 // Apostrophes are legal in a path ("McDonald's"), so a URL runs until whitespace, '<', '>' or '"'.
@@ -258,7 +288,8 @@ const PANEL_CHROME = new Set([
   'makan di tempat', 'bawa pulang', 'pesan antar', 'histori maps anda', 'situs web', 'telepon', 'foto',
   'info terbaru', 'sarankan pengeditan', 'klaim bisnis ini', 'pesan online', '·',
 ]);
-const RATING_LINE_RE = /^([0-5])[.,](\d)$/;
+// "4.9", "4,9 ★★★★★", "4.9(1,146)" or "4,9 ★★★★★ (1.146) · Rp 25–50 rb"; not "4,9 km".
+const RATING_LINE_RE = /^([0-5])[.,](\d)[\s★☆]*(?:\(([\d.,]+)\))?(?:\s*·.*)?$/;
 const COUNT_LINE_RE = /^\(([\d.,]+)\)/; // "(716)·Rp 1–25.000"
 const PHONE_RE = /^[+(]?\d[\d\s().-]{6,}$/;
 const PLUS_CODE_RE = /^[23456789CFGHJMPQRVWX]{4,8}\+[23456789CFGHJMPQRVWX]{2,3}\b/i;
@@ -289,6 +320,7 @@ function parsePlacePanel(text) {
     const r = line.match(RATING_LINE_RE);
     if (r) {
       if (rating === null) rating = Number(`${r[1]}.${r[2]}`);
+      if (r[3] && !ratingCount) ratingCount = r[3].replace(/\D/g, '');
       continue;
     }
     const count = line.match(COUNT_LINE_RE);
@@ -296,12 +328,15 @@ function parsePlacePanel(text) {
       if (!ratingCount) ratingCount = count[1].replace(/\D/g, '');
       continue;
     }
-    if (PHONE_RE.test(line) || PLUS_CODE_RE.test(line) || NOT_PLACE_DATA_RE.test(line)) continue;
-    if (!address && ADDRESS_RE.test(line)) {
-      address = trimProvince(line);
+    if (PHONE_RE.test(line) || PLUS_CODE_RE.test(line)) continue;
+    // The title comes first in the panel, so the first other line is the name whatever it says:
+    // "Open Space Coffee", "Jalan Jalan Coffee" and "Kopi Kota Tua" are names, not hours or addresses.
+    if (!name && rating === null && !address) {
+      name = line;
       continue;
     }
-    if (!name && rating === null && !address) name = line; // the title comes first in the panel
+    if (NOT_PLACE_DATA_RE.test(line)) continue;
+    if (!address && ADDRESS_RE.test(line)) address = trimProvince(line);
   }
 
   if (!name || (!address && rating === null)) return null;

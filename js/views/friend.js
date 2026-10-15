@@ -23,8 +23,8 @@ import {
   placeTile,
 } from '../components.js';
 import { getLang, t, tc, formatRating } from '../i18n.js';
-import { newId, SAMPLE_ID, colorHex } from '../data.js';
-import { getList, importList, storageOk } from '../store.js';
+import { SAMPLE_ID, colorHex } from '../data.js';
+import { getList, importList, storageOk, savedToDevice } from '../store.js';
 import { waLink, placeMessage, isSafeMapsUrl } from '../links.js';
 import * as routes from '../routes.js';
 
@@ -98,6 +98,9 @@ function savedIndex(params, total) {
 
 /** Keeps the current card in this history entry without a hashchange (so no re-render). */
 function rememberIndex({ payload, from }, index) {
+  // A late call (a scroll that ends after the user left) must not rewrite another screen's address.
+  const { view, params } = routes.parseRoute(location.hash);
+  if (view !== 'friend' || params.payload !== payload) return;
   try {
     history.replaceState(history.state, '', routes.friend(payload, { from, i: index || null }));
   } catch {
@@ -234,8 +237,8 @@ function watchStick(card) {
         head.classList.remove('is-stuck');
         return;
       }
-      // Wide screens have room for the full cover: it stays sticky but doesn't shrink.
-      if (head.classList.contains('is-stuck') || matchMedia('(min-width: 960px)').matches) return;
+      // Only a head that really sticks shrinks: wide and very short screens keep it in the flow.
+      if (head.classList.contains('is-stuck') || getComputedStyle(head).position !== 'sticky') return;
       const page = document.documentElement;
       const room = page.scrollHeight - COMPACT_SHRINK - innerHeight - (scrollY + entry.boundingClientRect.top - bar);
       if (room > 24) head.classList.add('is-stuck');
@@ -442,6 +445,7 @@ function placeStack(list, params) {
   function settle() {
     heading = null;
     clearTimeout(headingTimer);
+    if (!stack.isConnected) return; // the screen was left mid-scroll
     setCurrent(cardInView(), false);
   }
 
@@ -484,6 +488,16 @@ function placeStack(list, params) {
     if (next >= 0 && next < total) show(next);
   }
   addEventListener('wheel', onWheel, { passive: false });
+  // Leaving for another screen: let go of the page-wide wheel listener and any pending settle.
+  addEventListener(
+    'hashchange',
+    () => {
+      removeEventListener('wheel', onWheel);
+      clearTimeout(headingTimer);
+      clearTimeout(wheelQuiet);
+    },
+    { once: true },
+  );
 
   let ticking = false;
   stack.addEventListener(
@@ -557,9 +571,9 @@ function saveArea(list) {
       toast(tc('errStorage'), { icon: 'alert-circle' });
       return;
     }
-    // The example's id is the same on every phone, so a saved copy gets its own id
-    // (otherwise it would later collide with someone else's list made from the example).
-    const { list: saved } = importList(list.id === SAMPLE_ID ? { ...list, id: newId() } : list);
+    // importList gives the example a fresh id: its fixed id is the same on every device.
+    const { list: saved } = importList(list);
+    if (!savedToDevice()) return; // the "not saved" banner says why
     toast(t(S, 'toastSaved'));
     showOpen(saved.id).focus();
   };

@@ -448,14 +448,28 @@ export function deleteRow({ label, onClick, class: extra } = {}) {
  * focused (the safe choice). Confirming closes the sheet, then calls onConfirm(). Returns close().
  */
 export function confirmDelete({ title, body, confirm, onConfirm, iconSize = 16 } = {}) {
+  return chooseSheet({
+    title,
+    body,
+    choices: [{ label: confirm, icon: 'trash', iconSize, variant: 'btn--danger', onChoose: onConfirm }],
+  });
+}
+
+/**
+ * A sheet asking the user to pick one of `choices` ({ label, icon, iconSize, variant, onChoose }),
+ * with "Batal" last. Focus starts on "Batal", so Enter never does something by accident.
+ */
+export function chooseSheet({ title, body, choices }) {
   const button = (variant, content, onClick) =>
     h('button', { class: ['btn', variant, 'btn--block'], attrs: { type: 'button' }, on: { click: onClick } }, content);
-  const ok = button('btn--danger', [icon('trash', { size: iconSize }), h('span', {}, confirm)], () => {
-    close();
-    onConfirm();
-  });
+  const buttons = choices.map(({ label, icon: name, iconSize = 16, variant = 'btn--secondary', onChoose }) =>
+    button(variant, [name && icon(name, { size: iconSize }), h('span', {}, label)], () => {
+      close();
+      onChoose();
+    }),
+  );
   const cancel = button('btn--ghost', h('span', {}, tc('cancel')), () => close());
-  const close = openSheet([body, h('div', { class: 'sheet__actions' }, ok, cancel)], { label: title });
+  const close = openSheet([body, h('div', { class: 'sheet__actions' }, buttons, cancel)], { label: title });
   cancel.focus();
   return close;
 }

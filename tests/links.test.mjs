@@ -361,3 +361,62 @@ test('linkInfo says where a menu link goes and whether it is a PDF', () => {
   assert.equal(linkInfo('https://g\u043E\u043Egle.com/menu').host, 'xn--ggle-55da.com');
   assert.equal(linkInfo('javascript:alert(1)'), null);
 });
+
+test("Google's /url redirector never counts as a Maps link", () => {
+  for (const url of [
+    'https://maps.google.com/url?q=https://evil.example/login',
+    'https://www.google.com/url?q=https://evil.example',
+    'https://www.google.com/maps/url?q=https://evil.example',
+    'https://maps.google.com/search?q=x',
+  ]) assert.equal(isSafeMapsUrl(url), false, url);
+  assert.equal(canonicalMapsUrl('https://maps.google.com/url?q=https://evil.example/login'), '');
+  assert.ok(isSafeMapsUrl('https://maps.google.com/?cid=123'));
+  assert.ok(isSafeMapsUrl('https://maps.google.co.id/maps?q=x'));
+});
+
+test('menu links refuse IP addresses, and the label shows the real site', () => {
+  for (const url of ['https://1.2.3.4/menu', 'http://127.0.0.1:8080/x', 'https://[::1]/x', 'https://0x7f.1/x']) {
+    assert.equal(isSafeWebUrl(url), false, url);
+  }
+  assert.equal(linkInfo('https://drive.google.com.evil.example/menu').host, 'evil.example');
+  assert.equal(linkInfo('https://menu.kopi.co.id/a.pdf').host, 'menu.kopi.co.id');
+  assert.equal(linkInfo('https://a.b.c.kopi.co.id/x').host, 'kopi.co.id');
+  assert.equal(linkInfo('https://drive-google-com.evil.example/x').host, 'evil.example');
+});
+
+test('names that look like an IP address or use wide dots are not linkable in a message', () => {
+  const [leader, wideDot, ideoDot] = [0x2024, 0xff0e, 0x3002].map((c) => String.fromCharCode(c));
+  const msg = (name) => placeMessage({ ...kinterra, name }, 'id').split('\n')[0];
+  assert.equal(msg('1.2.3.4/login'), `*1${leader}2${leader}3${leader}4/login*`);
+  assert.equal(msg(`evil${wideDot}com`), `*evil${leader}com*`);
+  assert.equal(msg(`evil${ideoDot}com`), `*evil${leader}com*`);
+  // Ordinary numbers keep their dots.
+  assert.equal(msg('Kopi No.27 buka 09.00'), '*Kopi No.27 buka 09.00*');
+});
+
+test('a panel name is the first line, even when it reads like hours or an address', () => {
+  const [, ...rest] = PANEL.split('\n');
+  for (const name of ['Open Space Coffee', 'Buka Kopi', 'Kopi Kota Tua', 'Gang Kelinci Cafe', 'Jalan Jalan Coffee', 'Ruko Kopi 88', 'Kopi Rp 5000']) {
+    const r = parseMapsInput([name, ...rest].join('\n'));
+    assert.ok(r, name);
+    assert.equal(r.name, name);
+    assert.equal(r.rating, 4.6);
+    assert.equal(r.address, 'Jl. Contoh Raya No.12, Sukasari, Kec. Coblong, Kota Bandung');
+  }
+});
+
+test('a one-line rating with stars or the count right after it is read too', () => {
+  const [name, , , ...rest] = PANEL.split('\n');
+  for (const [line, rating, count] of [
+    ['4,9 ★★★★★ (1.146)', 4.9, '1146'],
+    ['4.9(1,146)', 4.9, '1146'],
+    ['4,8 ★★★★☆', 4.8, ''],
+  ]) {
+    const r = parseMapsInput([name, line, ...rest].join('\n'));
+    assert.equal(r.rating, rating, line);
+    assert.equal(r.ratingCount, count, line);
+  }
+  // A distance is not a rating.
+  const far = parseMapsInput([name, '4,9 km', ...rest].join('\n'));
+  assert.equal(far.rating, null);
+});
